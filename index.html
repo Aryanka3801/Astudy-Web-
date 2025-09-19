@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHT-CET Study Helper</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="toolbar">
+            <button class="menu-button" id="menuButton">
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+                <span class="hamburger"></span>
+            </button>
+            <h1 class="toolbar-title" id="toolbarTitle">Progress</h1>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tab-bar">
+            <div class="tabs-container">
+                <button class="tab-button active" data-tab="progress">Progress</button>
+                <button class="tab-button" data-tab="physics">Physics</button>
+                <button class="tab-button" data-tab="chemistry">Chemistry</button>
+                <button class="tab-button" data-tab="maths">Maths</button>
+                <button class="tab-button" data-tab="mcq">MCQ</button>
+                <button class="tab-button" data-tab="stopwatch">Stopwatch</button>
+                <button class="tab-button" data-tab="study-time">Study Time</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="page-container">
+            <div class="viewpager" id="viewpager">
+                <!-- Progress Page -->
+                <div class="page active" id="progress-page">
+                <div class="page-content">
+                    <!-- Authentication Prompt -->
+                    <div class="auth-prompt" id="authPrompt">
+                        <h3>Sign in to Save Your Progress</h3>
+                        <p>Create an account or sign in to save your study progress across devices and never lose your data.</p>
+                        <button class="btn btn-primary" id="promptSignInBtn">Sign In</button>
+                    </div>
+                    <!-- Days Remaining Card -->
+                    <div class="card days-card">
+                        <div class="card-header">
+                            <span class="icon">📅</span>
+                            <div>
+                                <span class="card-subtitle">DAYS REMAINING</span>
+                                <h2 class="days-count" id="daysLeft">--</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="section-title">YOUR PROGRESS</h3>
+
+                    <!-- Subject Progress Cards -->
+                    <div class="progress-cards">
+                        <!-- Physics Card -->
+                        <div class="card subject-card physics-card">
+                            <div class="card-header subject-header">
+                                <span class="icon">⚛️</span>
+                                <span class="subject-name">PHYSICS</span>
+                                <span class="percentage" id="physicsPercent">0%</span>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-row">
+                                    <span>Chapters:</span>
+                                    <span id="physicsProgress">0/24</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>MCQs:</span>
+                                    <span id="physicsMCQ">0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill physics-fill" id="physicsBar"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chemistry Card -->
+                        <div class="card subject-card chemistry-card">
+                            <div class="card-header subject-header">
+                                <span class="icon">🧪</span>
+                                <span class="subject-name">CHEMISTRY</span>
+                                <span class="percentage" id="chemistryPercent">0%</span>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-row">
+                                    <span>Chapters:</span>
+                                    <span id="chemistryProgress">0/25</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>MCQs:</span>
+                                    <span id="chemistryMCQ">0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill chemistry-fill" id="chemistryBar"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Maths Card -->
+                        <div class="card subject-card maths-card">
+                            <div class="card-header subject-header">
+                                <span class="icon">📐</span>
+                                <span class="subject-name">MATHS</span>
+                                <span class="percentage" id="mathsPercent">0%</span>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-row">
+                                    <span>Chapters:</span>
+                                    <span id="mathsProgress">0/25</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span>MCQs:</span>
+                                    <span id="mathsMCQ">0</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill maths-fill" id="mathsBar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Study Time -->
+                    <div class="card study-time-card">
+                        <div class="card-content">
+                            <h3>Total Study Time</h3>
+                            <p class="total-time" id="totalStudyTime">0 hr 0 min</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physics Page -->
+            <div class="page" id="physics-page">
+                <div class="page-content">
+                    <div class="grade-buttons">
+                        <button class="grade-btn active" data-grade="12th">12th: 16</button>
+                        <button class="grade-btn" data-grade="11th">11th: 8</button>
+                    </div>
+                    <div class="chapters-list" id="physicsChapters"></div>
+                </div>
+            </div>
+
+            <!-- Chemistry Page -->
+            <div class="page" id="chemistry-page">
+                <div class="page-content">
+                    <div class="grade-buttons">
+                        <button class="grade-btn active" data-grade="12th">12th: 16</button>
+                        <button class="grade-btn" data-grade="11th">11th: 9</button>
+                    </div>
+                    <div class="chapters-list" id="chemistryChapters"></div>
+                </div>
+            </div>
+
+            <!-- Maths Page -->
+            <div class="page" id="maths-page">
+                <div class="page-content">
+                    <div class="grade-buttons">
+                        <button class="grade-btn active" data-grade="12th">12th: 15</button>
+                        <button class="grade-btn" data-grade="11th">11th: 10</button>
+                    </div>
+                    <div class="chapters-list" id="mathsChapters"></div>
+                </div>
+            </div>
+
+            <!-- MCQ Page -->
+            <div class="page" id="mcq-page">
+                <div class="page-content">
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>MCQ Progress Tracker</h3>
+                            
+                            <div class="form-group">
+                                <label for="subjectSelect">SELECT SUBJECT</label>
+                                <select id="subjectSelect" class="form-select">
+                                    <option value="Physics">Physics</option>
+                                    <option value="Chemistry">Chemistry</option>
+                                    <option value="Maths">Maths</option>
+                                </select>
+                            </div>
+
+                            <div class="mcq-counter">
+                                <h4>QUESTIONS SOLVED</h4>
+                                <div class="counter-controls">
+                                    <button class="counter-btn" id="decreaseMCQ">-</button>
+                                    <span class="counter-display" id="mcqCount">0</span>
+                                    <button class="counter-btn" id="increaseMCQ">+</button>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" id="saveMCQ">SAVE PROGRESS</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stopwatch Page -->
+            <div class="page" id="stopwatch-page">
+                <div class="page-content">
+                    <div class="card stopwatch-card">
+                        <div class="card-content">
+                            <h3>Stopwatch</h3>
+                            <div class="stopwatch-display" id="stopwatchDisplay">00:00:00</div>
+                            <div class="stopwatch-controls">
+                                <button class="btn btn-primary" id="startStopwatch">Start</button>
+                                <button class="btn btn-secondary" id="pauseStopwatch" disabled>Pause</button>
+                                <button class="btn btn-tertiary" id="resetStopwatch" disabled>Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Study Time Page -->
+            <div class="page" id="study-time-page">
+                <div class="page-content">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="session-info" id="sessionInfo">No active session</div>
+                            <div class="elapsed-time" id="elapsedTime"></div>
+                            
+                            <div class="study-controls">
+                                <button class="btn btn-primary" id="toggleSession">Start Study</button>
+                                <button class="btn btn-secondary" id="togglePause" style="display: none;">Pause</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Sessions History -->
+                    <div class="card" id="todaySessionsCard">
+                        <div class="card-content">
+                            <h3>Today's Study Sessions</h3>
+                            <div id="todaySessionsList" class="sessions-list">
+                                <p class="no-sessions">No sessions today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </main>
+
+        <!-- Navigation Drawer -->
+        <div class="drawer-overlay" id="drawerOverlay"></div>
+        <nav class="navigation-drawer" id="navigationDrawer">
+            <div class="drawer-content">
+                <div class="drawer-header">
+                    <h3>Study Helper</h3>
+                </div>
+                
+                <div class="drawer-item">
+                    <span>Today's Study Time:</span>
+                    <span id="todayStudyTime">0 hr 0 min</span>
+                </div>
+                <button class="drawer-btn" id="historyButton">Study History</button>
+                
+                <div class="drawer-divider"></div>
+                
+                <!-- Authentication Section -->
+                <div class="drawer-auth-section" id="drawerAuthSection">
+                    <div class="drawer-item" id="userInfoDrawer" style="display: none;">
+                        <span>Signed in as:</span>
+                        <span id="userEmailDrawer" class="user-email-text"></span>
+                    </div>
+                    <button class="drawer-btn" id="signInBtnDrawer">Sign In</button>
+                    <button class="drawer-btn" id="logoutBtnDrawer" style="display: none; background: #f44336;">Sign Out</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Study History Modal -->
+        <div class="modal" id="historyModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Study History</h3>
+                    <button class="close-btn" id="closeHistory">&times;</button>
+                </div>
+                <div class="modal-body" id="historyContent">
+                    <!-- History items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="firebase-config.js"></script>
+    <script src="script.js"></script>
+    
+    <!-- Authentication Modal -->
+    <div class="modal auth-modal" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="authTitle">Sign In</h3>
+                <button class="close-btn" id="closeAuth">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="authForm">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary full-width" id="authSubmit">Sign In</button>
+                    <button type="button" class="btn btn-secondary full-width" id="authToggle">
+                        Don't have an account? Sign Up
+                    </button>
+                </form>
+                <div id="authError" class="auth-error" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
