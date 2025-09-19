@@ -117,7 +117,7 @@ class StudyApp {
         };
         
         // View pager properties
-        this.tabNames = ['progress', 'physics', 'chemistry', 'maths', 'mcq', 'stopwatch', 'study-time'];
+        this.tabNames = ['progress', 'physics', 'chemistry', 'maths', 'mcq', 'stopwatch', 'study-time', 'settings'];
         this.currentPageIndex = 0;
         this.touchStartX = 0;
         this.touchStartY = 0;
@@ -198,6 +198,7 @@ class StudyApp {
         const userInfoDrawer = document.getElementById('userInfoDrawer');
         const userEmailDrawer = document.getElementById('userEmailDrawer');
         const authPrompt = document.getElementById('authPrompt');
+        const migrationSection = document.getElementById('migrationSection');
         
         // Add null checks for all elements
         if (!signInBtnDrawer || !logoutBtnDrawer || !userInfoDrawer || !userEmailDrawer || !authPrompt) {
@@ -211,11 +212,13 @@ class StudyApp {
             userInfoDrawer.style.display = 'flex';
             userEmailDrawer.textContent = this.currentUser.email;
             authPrompt.style.display = 'none';
+            if (migrationSection) migrationSection.style.display = 'block';
         } else {
             signInBtnDrawer.style.display = 'block';
             logoutBtnDrawer.style.display = 'none';
             userInfoDrawer.style.display = 'none';
             authPrompt.style.display = 'block';
+            if (migrationSection) migrationSection.style.display = 'none';
         }
     }
 
@@ -269,6 +272,15 @@ class StudyApp {
                 this.toggleAuthMode();
             });
         }
+
+        // Data import functionality
+        this.setupImportListeners();
+
+        // Settings functionality
+        this.setupSettingsListeners();
+
+        // Load saved settings
+        this.loadSettings();
     }
 
     // Data Management (Local Storage Fallback)
@@ -586,6 +598,705 @@ class StudyApp {
         }
         
         this.clearAuthError();
+    }
+
+    // Data Import functionality
+    setupImportListeners() {
+        // Import button in drawer
+        const importDataBtn = document.getElementById('importDataBtn');
+        if (importDataBtn) {
+            importDataBtn.addEventListener('click', () => {
+                this.showImportModal();
+            });
+        }
+
+        // Close import modal
+        const closeImport = document.getElementById('closeImport');
+        if (closeImport) {
+            closeImport.addEventListener('click', () => {
+                this.hideImportModal();
+            });
+        }
+
+        // File input change
+        const backupFileInput = document.getElementById('backupFileInput');
+        if (backupFileInput) {
+            backupFileInput.addEventListener('change', (e) => {
+                this.handleFileSelection(e);
+            });
+        }
+
+        // Confirm import button
+        const confirmImport = document.getElementById('confirmImport');
+        if (confirmImport) {
+            confirmImport.addEventListener('click', () => {
+                this.performImport();
+            });
+        }
+
+        // Import mode change
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'importMode') {
+                this.updateImportPreview();
+                this.updateImportButton();
+            }
+        });
+    }
+
+    showImportModal() {
+        // Require authentication
+        if (!this.currentUser) {
+            this.showToast('Please sign in to import data');
+            this.showAuthModal();
+            return;
+        }
+
+        const modal = document.getElementById('importModal');
+        if (modal) {
+            modal.classList.add('open');
+            this.resetImportModal();
+        }
+    }
+
+    hideImportModal() {
+        const modal = document.getElementById('importModal');
+        if (modal) {
+            modal.classList.remove('open');
+            this.resetImportModal();
+        }
+    }
+
+    resetImportModal() {
+        const fileInput = document.getElementById('backupFileInput');
+        const preview = document.getElementById('importPreview');
+        const confirmBtn = document.getElementById('confirmImport');
+        const status = document.getElementById('importStatus');
+
+        if (fileInput) fileInput.value = '';
+        if (preview) preview.style.display = 'none';
+        if (confirmBtn) confirmBtn.style.display = 'none';
+        if (status) {
+            status.style.display = 'none';
+            status.innerHTML = '';
+        }
+
+        this.pendingImportData = null;
+    }
+
+    handleFileSelection(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file size (max 1MB)
+        const maxSize = 1024 * 1024; // 1MB
+        if (file.size > maxSize) {
+            this.showImportError('File is too large. Maximum size is 1MB.');
+            return;
+        }
+
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+            this.showImportError('Please select a .txt backup file.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            try {
+                const parsedData = this.parseBackupFile(content);
+                this.showImportPreview(parsedData);
+                this.pendingImportData = parsedData;
+            } catch (error) {
+                console.error('Parse error:', error);
+                this.showImportError('Error parsing backup file: ' + error.message);
+            }
+        };
+        reader.onerror = () => {
+            this.showImportError('Error reading file. Please try again.');
+        };
+        reader.readAsText(file);
+    }
+
+    parseBackupFile(content) {
+        const lines = content.trim().split('\n');
+        const data = {
+            timestamp: null,
+            completedChapters: { Physics: [], Chemistry: [], Maths: [] },
+            mcqCounts: { Physics: 0, Chemistry: 0, Maths: 0 },
+            totalStudyMinutes: 0,
+            dailyStudyTimes: {},
+            sessionHistory: {}
+        };
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue;
+
+            if (trimmedLine.startsWith('Timestamp:')) {
+                data.timestamp = trimmedLine.substring('Timestamp:'.length).trim();
+            } else if (trimmedLine.startsWith('Physics MCQs:')) {
+                data.mcqCounts.Physics = parseInt(trimmedLine.substring('Physics MCQs:'.length).trim()) || 0;
+            } else if (trimmedLine.startsWith('Chemistry MCQs:')) {
+                data.mcqCounts.Chemistry = parseInt(trimmedLine.substring('Chemistry MCQs:'.length).trim()) || 0;
+            } else if (trimmedLine.startsWith('Maths MCQs:')) {
+                data.mcqCounts.Maths = parseInt(trimmedLine.substring('Maths MCQs:'.length).trim()) || 0;
+            } else if (trimmedLine.startsWith('Total Study Minutes:')) {
+                data.totalStudyMinutes = parseInt(trimmedLine.substring('Total Study Minutes:'.length).trim()) || 0;
+            } else if (trimmedLine.startsWith('PhysicsChapters:')) {
+                const chaptersStr = trimmedLine.substring('PhysicsChapters:'.length).trim();
+                data.completedChapters.Physics = chaptersStr ? chaptersStr.split(',').map(ch => ch.trim()) : [];
+            } else if (trimmedLine.startsWith('ChemistryChapters:')) {
+                const chaptersStr = trimmedLine.substring('ChemistryChapters:'.length).trim();
+                data.completedChapters.Chemistry = chaptersStr ? chaptersStr.split(',').map(ch => ch.trim()) : [];
+            } else if (trimmedLine.startsWith('MathsChapters:')) {
+                const chaptersStr = trimmedLine.substring('MathsChapters:'.length).trim();
+                data.completedChapters.Maths = chaptersStr ? chaptersStr.split(',').map(ch => ch.trim()) : [];
+            } else if (trimmedLine.startsWith('StudyHistory:')) {
+                const historyStr = trimmedLine.substring('StudyHistory:'.length).trim();
+                const parts = historyStr.split(':');
+                if (parts.length === 2) {
+                    const date = parts[0];
+                    const minutes = parseInt(parts[1]) || 0;
+                    data.dailyStudyTimes[date] = minutes;
+                    data.sessionHistory[date] = [{
+                        startTime: new Date(date + ' 00:00:00').toISOString(),
+                        endTime: new Date(date + ' 00:00:00').toISOString(),
+                        duration: minutes,
+                        imported: true
+                    }];
+                }
+            }
+        }
+
+        return data;
+    }
+
+    showImportPreview(data) {
+        const preview = document.getElementById('importPreview');
+        const confirmBtn = document.getElementById('confirmImport');
+
+        if (!preview || !confirmBtn) return;
+
+        this.updateImportPreview();
+        this.updateImportButton();
+        preview.style.display = 'block';
+        confirmBtn.style.display = 'block';
+    }
+
+    updateImportPreview() {
+        if (!this.pendingImportData) return;
+
+        const previewContent = document.getElementById('importPreviewContent');
+        if (!previewContent) return;
+
+        const importMode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
+        const data = this.pendingImportData;
+
+        let previewText = '';
+        
+        // Basic backup info
+        previewText += `Backup from: ${data.timestamp || 'Unknown date'}\n`;
+        previewText += `Total Study Minutes: ${data.totalStudyMinutes} (${Math.floor(data.totalStudyMinutes / 60)}h ${data.totalStudyMinutes % 60}m)\n`;
+        previewText += `MCQs: Physics: ${data.mcqCounts.Physics}, Chemistry: ${data.mcqCounts.Chemistry}, Maths: ${data.mcqCounts.Maths}\n`;
+        
+        previewText += `Completed Chapters:\n`;
+        previewText += `• Physics: ${data.completedChapters.Physics.length ? data.completedChapters.Physics.join(', ') : 'None'}\n`;
+        previewText += `• Chemistry: ${data.completedChapters.Chemistry.length ? data.completedChapters.Chemistry.join(', ') : 'None'}\n`;
+        previewText += `• Maths: ${data.completedChapters.Maths.length ? data.completedChapters.Maths.join(', ') : 'None'}\n`;
+        previewText += `Study History: ${Object.keys(data.dailyStudyTimes).length} days of records\n\n`;
+
+        // Mode-specific preview
+        if (importMode === 'merge') {
+            previewText += `MERGE MODE - What will happen:\n`;
+            previewText += `• MCQ counts will be ADDED to your current counts\n`;
+            previewText += `• Study minutes will be ADDED to your total time\n`;
+            previewText += `• New completed chapters will be ADDED (no duplicates)\n`;
+            previewText += `• Study history from new dates will be ADDED\n`;
+            previewText += `• Your existing data will be PRESERVED`;
+        } else {
+            previewText += `REPLACE MODE - What will happen:\n`;
+            previewText += `• Your current MCQ counts will be REPLACED with backup counts\n`;
+            previewText += `• Your current study minutes will be REPLACED with backup total\n`;
+            previewText += `• Your completed chapters will be REPLACED with backup chapters\n`;
+            previewText += `• Your study history will be REPLACED with backup history\n`;
+            previewText += `• ⚠️ ALL YOUR CURRENT DATA WILL BE LOST`;
+        }
+
+        previewContent.textContent = previewText;
+    }
+
+    updateImportButton() {
+        const confirmBtn = document.getElementById('confirmImport');
+        if (!confirmBtn) return;
+
+        const importMode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
+        if (importMode === 'replace') {
+            confirmBtn.textContent = 'Replace My Data';
+        } else {
+            confirmBtn.textContent = 'Merge Data';
+        }
+    }
+
+    async performImport() {
+        if (!this.pendingImportData) {
+            this.showImportError('No data to import');
+            return;
+        }
+
+        // Double-check authentication
+        if (!this.currentUser) {
+            this.showImportError('Please sign in to import data');
+            return;
+        }
+
+        try {
+            this.showImportStatus('Importing data...', 'info');
+
+            // Validate the data structure before merging
+            if (!this.validateImportData(this.pendingImportData)) {
+                this.showImportError('Invalid data format in backup file');
+                return;
+            }
+
+            // Get import mode and merge or replace data accordingly
+            const importMode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
+            if (importMode === 'replace') {
+                this.replaceWithImportedData(this.pendingImportData);
+            } else {
+                this.mergeImportedData(this.pendingImportData);
+            }
+
+            // Save the updated data to Firebase
+            await this.saveDataToFirestore();
+
+            // Update UI
+            this.updateUI();
+            this.loadAllChapters();
+
+            this.showImportStatus('Data imported successfully!', 'success');
+            this.showToast('Backup data imported successfully');
+
+            setTimeout(() => {
+                this.hideImportModal();
+            }, 2000);
+
+        } catch (error) {
+            console.error('Error importing data:', error);
+            this.showImportError('Failed to import data: ' + error.message);
+        }
+    }
+
+    validateImportData(data) {
+        // Validate required structure
+        if (!data || typeof data !== 'object') return false;
+        
+        // Validate completedChapters structure
+        if (!data.completedChapters || typeof data.completedChapters !== 'object') return false;
+        const requiredSubjects = ['Physics', 'Chemistry', 'Maths'];
+        for (const subject of requiredSubjects) {
+            if (!Array.isArray(data.completedChapters[subject])) return false;
+        }
+        
+        // Validate mcqCounts structure
+        if (!data.mcqCounts || typeof data.mcqCounts !== 'object') return false;
+        for (const subject of requiredSubjects) {
+            if (typeof data.mcqCounts[subject] !== 'number' || data.mcqCounts[subject] < 0) return false;
+        }
+        
+        // Validate totalStudyMinutes
+        if (typeof data.totalStudyMinutes !== 'number' || data.totalStudyMinutes < 0) return false;
+        
+        // Validate dailyStudyTimes
+        if (!data.dailyStudyTimes || typeof data.dailyStudyTimes !== 'object') return false;
+        
+        // Validate sessionHistory
+        if (!data.sessionHistory || typeof data.sessionHistory !== 'object') return false;
+        
+        return true;
+    }
+
+    mergeImportedData(importedData) {
+        // Safely merge MCQ counts (add to existing counts)
+        this.mcqCounts.Physics = (this.mcqCounts.Physics || 0) + importedData.mcqCounts.Physics;
+        this.mcqCounts.Chemistry = (this.mcqCounts.Chemistry || 0) + importedData.mcqCounts.Chemistry;
+        this.mcqCounts.Maths = (this.mcqCounts.Maths || 0) + importedData.mcqCounts.Maths;
+
+        // Merge completed chapters (avoid duplicates, validate against known chapters)
+        ['Physics', 'Chemistry', 'Maths'].forEach(subject => {
+            if (!this.completedChapters[subject]) {
+                this.completedChapters[subject] = [];
+            }
+            
+            const existingChapters = new Set(this.completedChapters[subject]);
+            const validChapters = this.getValidChaptersForSubject(subject);
+            
+            importedData.completedChapters[subject].forEach(chapter => {
+                // Only add if not already completed and is a valid chapter
+                if (!existingChapters.has(chapter) && validChapters.includes(chapter)) {
+                    this.completedChapters[subject].push(chapter);
+                }
+            });
+        });
+
+        // Add to total study minutes
+        this.totalStudyMinutes = (this.totalStudyMinutes || 0) + importedData.totalStudyMinutes;
+
+        // Merge daily study times (preserve existing, add new dates)
+        Object.keys(importedData.dailyStudyTimes).forEach(date => {
+            if (!this.dailyStudyTimes[date]) {
+                this.dailyStudyTimes[date] = importedData.dailyStudyTimes[date];
+            }
+            // If date already exists, keep existing value to avoid double-counting
+        });
+
+        // Merge session history (preserve existing, add new dates)
+        Object.keys(importedData.sessionHistory).forEach(date => {
+            if (!this.sessionHistory[date]) {
+                this.sessionHistory[date] = importedData.sessionHistory[date];
+            }
+            // If date already exists, keep existing sessions to avoid duplicates
+        });
+    }
+
+    getValidChaptersForSubject(subject) {
+        // Get all valid chapters for a subject from CHAPTERS constant
+        if (!window.CHAPTERS || !window.CHAPTERS[subject]) {
+            return CHAPTERS[subject] ? [...CHAPTERS[subject]['12th'], ...CHAPTERS[subject]['11th']] : [];
+        }
+        const chapters12th = CHAPTERS[subject]['12th'] || [];
+        const chapters11th = CHAPTERS[subject]['11th'] || [];
+        return [...chapters12th, ...chapters11th];
+    }
+
+    replaceWithImportedData(importedData) {
+        // Replace all data with imported data
+        this.mcqCounts = {
+            Physics: importedData.mcqCounts.Physics,
+            Chemistry: importedData.mcqCounts.Chemistry,
+            Maths: importedData.mcqCounts.Maths
+        };
+
+        // Replace completed chapters
+        this.completedChapters = {
+            Physics: [...importedData.completedChapters.Physics],
+            Chemistry: [...importedData.completedChapters.Chemistry],
+            Maths: [...importedData.completedChapters.Maths]
+        };
+
+        // Replace total study minutes
+        this.totalStudyMinutes = importedData.totalStudyMinutes;
+
+        // Replace daily study times
+        this.dailyStudyTimes = { ...importedData.dailyStudyTimes };
+
+        // Replace session history
+        this.sessionHistory = { ...importedData.sessionHistory };
+
+        // Reset current study session
+        this.studySession = {
+            originalStartTime: null,
+            startTime: null,
+            pausedTime: 0,
+            isActive: false,
+            isPaused: false
+        };
+    }
+
+    showImportStatus(message, type) {
+        const status = document.getElementById('importStatus');
+        if (status) {
+            status.textContent = message;
+            status.className = 'import-status ' + type;
+            status.style.display = 'block';
+        }
+    }
+
+    showImportError(message) {
+        this.showImportStatus(message, 'error');
+    }
+
+    // Settings System
+    setupSettingsListeners() {
+        // Theme selection
+        const themeOptions = document.querySelectorAll('.theme-option');
+        themeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.dataset.theme;
+                this.changeTheme(theme);
+                this.updateThemeSelection(theme);
+            });
+        });
+
+        // Font size slider
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        if (fontSizeSlider && fontSizeValue) {
+            fontSizeSlider.addEventListener('input', (e) => {
+                const size = e.target.value;
+                fontSizeValue.textContent = size + 'px';
+                this.changeFontSize(size);
+            });
+        }
+
+        // Study goal slider
+        const studyGoalSlider = document.getElementById('studyGoalSlider');
+        const studyGoalValue = document.getElementById('studyGoalValue');
+        if (studyGoalSlider && studyGoalValue) {
+            studyGoalSlider.addEventListener('input', (e) => {
+                const minutes = parseInt(e.target.value);
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                studyGoalValue.textContent = `${hours}h ${mins}m`;
+                this.saveSettingValue('studyGoal', minutes);
+            });
+        }
+
+        // Animation speed radios
+        const animationRadios = document.querySelectorAll('input[name="animationSpeed"]');
+        animationRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    this.changeAnimationSpeed(radio.value);
+                }
+            });
+        });
+
+        // Toggle options
+        const toggles = {
+            'reducedMotion': () => this.toggleReducedMotion(),
+            'highContrast': () => this.toggleHighContrast(),
+            'compactMode': () => this.toggleCompactMode(),
+            'studyReminders': () => this.saveSettingValue('studyReminders', document.getElementById('studyReminders').checked),
+            'progressNotifications': () => this.saveSettingValue('progressNotifications', document.getElementById('progressNotifications').checked),
+            'autoSaveProgress': () => this.saveSettingValue('autoSaveProgress', document.getElementById('autoSaveProgress').checked)
+        };
+
+        Object.keys(toggles).forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                toggle.addEventListener('change', toggles[toggleId]);
+            }
+        });
+
+        // Default subject selector
+        const defaultSubject = document.getElementById('defaultSubject');
+        if (defaultSubject) {
+            defaultSubject.addEventListener('change', (e) => {
+                this.saveSettingValue('defaultSubject', e.target.value);
+            });
+        }
+
+        // Action buttons
+        const exportData = document.getElementById('exportData');
+        if (exportData) {
+            exportData.addEventListener('click', () => this.exportProgressData());
+        }
+
+        const resetSettings = document.getElementById('resetSettings');
+        if (resetSettings) {
+            resetSettings.addEventListener('click', () => this.resetSettings());
+        }
+
+        const resetAllData = document.getElementById('resetAllData');
+        if (resetAllData) {
+            resetAllData.addEventListener('click', () => this.resetAllData());
+        }
+    }
+
+    loadSettings() {
+        const savedSettings = this.getData('appSettings', {
+            theme: 'default',
+            fontSize: 16,
+            animationSpeed: 'normal',
+            reducedMotion: false,
+            highContrast: false,
+            compactMode: false,
+            studyGoal: 120,
+            defaultSubject: '',
+            studyReminders: false,
+            progressNotifications: true,
+            autoSaveProgress: true
+        });
+
+        // Apply theme
+        this.changeTheme(savedSettings.theme);
+        this.updateThemeSelection(savedSettings.theme);
+
+        // Apply font size
+        this.changeFontSize(savedSettings.fontSize);
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        if (fontSizeSlider && fontSizeValue) {
+            fontSizeSlider.value = savedSettings.fontSize;
+            fontSizeValue.textContent = savedSettings.fontSize + 'px';
+        }
+
+        // Apply animation speed
+        this.changeAnimationSpeed(savedSettings.animationSpeed);
+        const animationRadio = document.querySelector(`input[name="animationSpeed"][value="${savedSettings.animationSpeed}"]`);
+        if (animationRadio) animationRadio.checked = true;
+
+        // Apply toggles
+        const toggleSettings = {
+            'reducedMotion': savedSettings.reducedMotion,
+            'highContrast': savedSettings.highContrast,
+            'compactMode': savedSettings.compactMode,
+            'studyReminders': savedSettings.studyReminders,
+            'progressNotifications': savedSettings.progressNotifications,
+            'autoSaveProgress': savedSettings.autoSaveProgress
+        };
+
+        Object.keys(toggleSettings).forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                toggle.checked = toggleSettings[toggleId];
+                // Apply the effect if needed
+                if (toggleId === 'reducedMotion' && toggleSettings[toggleId]) this.toggleReducedMotion(true);
+                if (toggleId === 'highContrast' && toggleSettings[toggleId]) this.toggleHighContrast(true);
+                if (toggleId === 'compactMode' && toggleSettings[toggleId]) this.toggleCompactMode(true);
+            }
+        });
+
+        // Apply study goal
+        const studyGoalSlider = document.getElementById('studyGoalSlider');
+        const studyGoalValue = document.getElementById('studyGoalValue');
+        if (studyGoalSlider && studyGoalValue) {
+            studyGoalSlider.value = savedSettings.studyGoal;
+            const hours = Math.floor(savedSettings.studyGoal / 60);
+            const mins = savedSettings.studyGoal % 60;
+            studyGoalValue.textContent = `${hours}h ${mins}m`;
+        }
+
+        // Apply default subject
+        const defaultSubject = document.getElementById('defaultSubject');
+        if (defaultSubject) {
+            defaultSubject.value = savedSettings.defaultSubject;
+        }
+    }
+
+    changeTheme(themeName) {
+        const validThemes = ['default', 'dark', 'ocean', 'forest', 'sunset', 'minimal'];
+        const selectedTheme = validThemes.includes(themeName) ? themeName : 'default';
+        
+        // Set the data-theme attribute which triggers CSS variable overrides
+        document.documentElement.dataset.theme = selectedTheme;
+        
+        // Save theme preference
+        this.saveSettingValue('theme', selectedTheme);
+    }
+
+    updateThemeSelection(themeName) {
+        const themeOptions = document.querySelectorAll('.theme-option');
+        themeOptions.forEach(option => {
+            option.classList.remove('active');
+            if (option.dataset.theme === themeName) {
+                option.classList.add('active');
+            }
+        });
+    }
+
+    changeFontSize(size) {
+        document.documentElement.style.setProperty('--base-font-size', size + 'px');
+        this.saveSettingValue('fontSize', parseInt(size));
+    }
+
+    changeAnimationSpeed(speed) {
+        const speeds = {
+            'slow': { '--transition-fast': '0.3s ease', '--transition-normal': '0.6s ease', '--transition-slow': '1s ease' },
+            'normal': { '--transition-fast': '0.15s ease', '--transition-normal': '0.3s ease', '--transition-slow': '0.5s ease' },
+            'fast': { '--transition-fast': '0.08s ease', '--transition-normal': '0.15s ease', '--transition-slow': '0.25s ease' }
+        };
+
+        const speedValues = speeds[speed] || speeds['normal'];
+        const root = document.documentElement;
+        Object.keys(speedValues).forEach(property => {
+            root.style.setProperty(property, speedValues[property]);
+        });
+
+        this.saveSettingValue('animationSpeed', speed);
+    }
+
+    toggleReducedMotion(forceValue = null) {
+        const isActive = forceValue !== null ? forceValue : document.getElementById('reducedMotion').checked;
+        if (isActive) {
+            document.documentElement.style.setProperty('--transition-fast', '0s');
+            document.documentElement.style.setProperty('--transition-normal', '0s');
+            document.documentElement.style.setProperty('--transition-slow', '0s');
+            document.body.classList.add('reduced-motion');
+        } else {
+            this.changeAnimationSpeed(this.getData('appSettings', {}).animationSpeed || 'normal');
+            document.body.classList.remove('reduced-motion');
+        }
+        this.saveSettingValue('reducedMotion', isActive);
+    }
+
+    toggleHighContrast(forceValue = null) {
+        const isActive = forceValue !== null ? forceValue : document.getElementById('highContrast').checked;
+        document.body.classList.toggle('high-contrast', isActive);
+        this.saveSettingValue('highContrast', isActive);
+    }
+
+    toggleCompactMode(forceValue = null) {
+        const isActive = forceValue !== null ? forceValue : document.getElementById('compactMode').checked;
+        document.body.classList.toggle('compact-mode', isActive);
+        this.saveSettingValue('compactMode', isActive);
+    }
+
+    saveSettingValue(key, value) {
+        const currentSettings = this.getData('appSettings', {});
+        currentSettings[key] = value;
+        this.setData('appSettings', currentSettings);
+    }
+
+    exportProgressData() {
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            completedChapters: this.completedChapters,
+            mcqCounts: this.mcqCounts,
+            totalStudyMinutes: this.totalStudyMinutes,
+            dailyStudyTimes: this.dailyStudyTimes,
+            sessionHistory: this.sessionHistory,
+            settings: this.getData('appSettings', {})
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `mht-cet-progress-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        this.showToast('Progress data exported successfully!');
+    }
+
+    resetSettings() {
+        if (confirm('Are you sure you want to reset all settings to default? This will not affect your study progress.')) {
+            localStorage.removeItem('appSettings');
+            this.showToast('Settings reset successfully!');
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+
+    resetAllData() {
+        if (confirm('⚠️ WARNING: This will permanently delete ALL your study progress and settings. This cannot be undone. Are you absolutely sure?')) {
+            if (confirm('Last chance! This will delete everything including your completed chapters, MCQ counts, and study history. Type "DELETE" if you want to proceed:') && prompt('Type "DELETE" to confirm:') === 'DELETE') {
+                // Clear all local storage
+                localStorage.clear();
+                
+                // Clear Firebase data if user is authenticated
+                if (this.currentUser) {
+                    this.initializeDefaultData();
+                    this.saveDataToFirestore();
+                }
+                
+                this.showToast('All data has been reset.');
+                setTimeout(() => location.reload(), 2000);
+            }
+        }
     }
 
     // Authentication Methods
@@ -953,7 +1664,8 @@ class StudyApp {
             'maths': 'Maths',
             'mcq': 'MCQ Tracker',
             'stopwatch': 'Stopwatch',
-            'study-time': 'Study Time'
+            'study-time': 'Study Time',
+            'settings': 'Settings'
         };
         document.getElementById('toolbarTitle').textContent = titles[tabName];
 

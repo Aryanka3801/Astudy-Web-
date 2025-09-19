@@ -31,6 +31,7 @@
                 <button class="tab-button" data-tab="mcq">MCQ</button>
                 <button class="tab-button" data-tab="stopwatch">Stopwatch</button>
                 <button class="tab-button" data-tab="study-time">Study Time</button>
+                <button class="tab-button" data-tab="settings">Settings</button>
             </div>
         </nav>
 
@@ -245,6 +246,167 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="settings-page">
+                <div class="page-content">
+                    <!-- Theme Settings -->
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🎨 Appearance & Themes</h3>
+                            <div class="settings-section">
+                                <label class="setting-label">Theme</label>
+                                <div class="theme-grid" id="themeGrid">
+                                    <div class="theme-option" data-theme="default">
+                                        <div class="theme-preview gradient-purple"></div>
+                                        <span>Purple Galaxy</span>
+                                    </div>
+                                    <div class="theme-option" data-theme="dark">
+                                        <div class="theme-preview gradient-dark"></div>
+                                        <span>Midnight Dark</span>
+                                    </div>
+                                    <div class="theme-option" data-theme="ocean">
+                                        <div class="theme-preview gradient-ocean"></div>
+                                        <span>Ocean Blue</span>
+                                    </div>
+                                    <div class="theme-option" data-theme="forest">
+                                        <div class="theme-preview gradient-forest"></div>
+                                        <span>Forest Green</span>
+                                    </div>
+                                    <div class="theme-option" data-theme="sunset">
+                                        <div class="theme-preview gradient-sunset"></div>
+                                        <span>Warm Sunset</span>
+                                    </div>
+                                    <div class="theme-option" data-theme="minimal">
+                                        <div class="theme-preview gradient-minimal"></div>
+                                        <span>Clean Minimal</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UI Customization -->
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>⚙️ Interface Customization</h3>
+                            
+                            <div class="settings-section">
+                                <label class="setting-label">Font Size</label>
+                                <div class="slider-container">
+                                    <input type="range" id="fontSizeSlider" min="12" max="20" value="16" class="slider">
+                                    <span class="slider-value" id="fontSizeValue">16px</span>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <label class="setting-label">Animation Speed</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="animationSpeed" value="slow">
+                                        <span class="radio-text">Slow</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="animationSpeed" value="normal" checked>
+                                        <span class="radio-text">Normal</span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="animationSpeed" value="fast">
+                                        <span class="radio-text">Fast</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <div class="toggle-group">
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="reducedMotion">
+                                        <span class="toggle-text">Reduce Motion</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="highContrast">
+                                        <span class="toggle-text">High Contrast</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="compactMode">
+                                        <span class="toggle-text">Compact Layout</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Study Preferences -->
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>📚 Study Preferences</h3>
+                            
+                            <div class="settings-section">
+                                <label class="setting-label">Daily Study Goal (minutes)</label>
+                                <div class="slider-container">
+                                    <input type="range" id="studyGoalSlider" min="30" max="480" value="120" step="15" class="slider">
+                                    <span class="slider-value" id="studyGoalValue">2h 0m</span>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <label class="setting-label">Default Subject Focus</label>
+                                <select id="defaultSubject" class="form-select">
+                                    <option value="">None (Show Progress)</option>
+                                    <option value="physics">Physics</option>
+                                    <option value="chemistry">Chemistry</option>
+                                    <option value="maths">Mathematics</option>
+                                </select>
+                            </div>
+
+                            <div class="settings-section">
+                                <div class="toggle-group">
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="studyReminders">
+                                        <span class="toggle-text">Study Reminders</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="progressNotifications">
+                                        <span class="toggle-text">Progress Notifications</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="checkbox" id="autoSaveProgress">
+                                        <span class="toggle-text">Auto-save Progress</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reset & Export -->
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🔄 Data Management</h3>
+                            
+                            <div class="settings-section">
+                                <button class="btn btn-secondary full-width" id="exportData">
+                                    📤 Export Progress Data
+                                </button>
+                                <small class="setting-description">Download your study progress as a backup file</small>
+                            </div>
+
+                            <div class="settings-section">
+                                <button class="btn btn-warning full-width" id="resetSettings">
+                                    🔧 Reset All Settings
+                                </button>
+                                <small class="setting-description">Restore default theme and preferences (keeps study data)</small>
+                            </div>
+
+                            <div class="settings-section">
+                                <button class="btn btn-danger full-width" id="resetAllData">
+                                    ⚠️ Reset All Data
+                                </button>
+                                <small class="setting-description">⚠️ This will permanently delete all your progress and settings</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             </div>
         </main>
 
@@ -272,6 +434,14 @@
                     </div>
                     <button class="drawer-btn" id="signInBtnDrawer">Sign In</button>
                     <button class="drawer-btn" id="logoutBtnDrawer" style="display: none; background: #f44336;">Sign Out</button>
+                    
+                    <div class="drawer-divider"></div>
+                    
+                    <!-- Data Migration Section -->
+                    <div class="drawer-section" id="migrationSection" style="display: none;">
+                        <h4 style="color: #666; font-size: 14px; margin-bottom: 10px;">Data Import</h4>
+                        <button class="drawer-btn" id="importDataBtn">Import Backup File</button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -285,6 +455,57 @@
                 </div>
                 <div class="modal-body" id="historyContent">
                     <!-- History items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Import Modal -->
+        <div class="modal" id="importModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Import Backup Data</h3>
+                    <button class="close-btn" id="closeImport">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="import-content">
+                        <p>Select your backup file to import your previous study progress. This will add your old data to your current account.</p>
+                        
+                        <div class="form-group">
+                            <label for="backupFileInput">Choose backup file:</label>
+                            <input type="file" id="backupFileInput" accept=".txt" class="form-input">
+                        </div>
+                        
+                        <div class="import-preview" id="importPreview" style="display: none;">
+                            <h4>Preview:</h4>
+                            <div id="importPreviewContent"></div>
+                            
+                            <div class="import-options">
+                                <h4>Import Options:</h4>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="importMode" value="merge" checked>
+                                        <span class="radio-text">
+                                            <strong>Merge with existing data</strong>
+                                            <small>Add backup data to your current progress (recommended)</small>
+                                        </span>
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="importMode" value="replace">
+                                        <span class="radio-text">
+                                            <strong>Replace existing data</strong>
+                                            <small>Completely replace your current progress with backup data</small>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary full-width" id="confirmImport" style="display: none;">
+                            Import Data
+                        </button>
+                        
+                        <div id="importStatus" class="import-status" style="display: none;"></div>
+                    </div>
                 </div>
             </div>
         </div>
