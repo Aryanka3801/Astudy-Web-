@@ -198,7 +198,6 @@ class StudyApp {
         const userInfoDrawer = document.getElementById('userInfoDrawer');
         const userEmailDrawer = document.getElementById('userEmailDrawer');
         const authPrompt = document.getElementById('authPrompt');
-        const migrationSection = document.getElementById('migrationSection');
         
         // Add null checks for all elements
         if (!signInBtnDrawer || !logoutBtnDrawer || !userInfoDrawer || !userEmailDrawer || !authPrompt) {
@@ -212,13 +211,11 @@ class StudyApp {
             userInfoDrawer.style.display = 'flex';
             userEmailDrawer.textContent = this.currentUser.email;
             authPrompt.style.display = 'none';
-            if (migrationSection) migrationSection.style.display = 'block';
         } else {
             signInBtnDrawer.style.display = 'block';
             logoutBtnDrawer.style.display = 'none';
             userInfoDrawer.style.display = 'none';
             authPrompt.style.display = 'block';
-            if (migrationSection) migrationSection.style.display = 'none';
         }
     }
 
