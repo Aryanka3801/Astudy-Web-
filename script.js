@@ -117,7 +117,7 @@ class StudyApp {
         };
         
         // View pager properties
-        this.tabNames = ['progress', 'physics', 'chemistry', 'maths', 'mcq', 'stopwatch', 'study-time', 'settings'];
+        this.tabNames = ['progress', 'physics', 'chemistry', 'maths', 'mcq', 'stopwatch', 'study-time'];
         this.currentPageIndex = 0;
         this.touchStartX = 0;
         this.touchStartY = 0;
@@ -1427,9 +1427,20 @@ class StudyApp {
             this.closeDrawer();
         });
 
+        // Settings button
+        document.getElementById('settingsButton').addEventListener('click', () => {
+            this.showSettings();
+            this.closeDrawer();
+        });
+
         // Close history modal
         document.getElementById('closeHistory').addEventListener('click', () => {
             this.closeHistory();
+        });
+
+        // Close settings modal
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            this.closeSettings();
         });
 
         // Grade buttons for each subject
@@ -1665,7 +1676,6 @@ class StudyApp {
             'mcq': 'MCQ Tracker',
             'stopwatch': 'Stopwatch',
             'study-time': 'Study Time',
-            'settings': 'Settings'
         };
         document.getElementById('toolbarTitle').textContent = titles[tabName];
 
@@ -1726,18 +1736,22 @@ class StudyApp {
     openDrawer() {
         const drawer = document.getElementById('navigationDrawer');
         const overlay = document.getElementById('drawerOverlay');
+        const menuButton = document.getElementById('menuButton');
         
         drawer.classList.add('open');
         overlay.classList.add('open');
+        menuButton.classList.add('open');
         this.updateTodayStudyTime();
     }
 
     closeDrawer() {
         const drawer = document.getElementById('navigationDrawer');
         const overlay = document.getElementById('drawerOverlay');
+        const menuButton = document.getElementById('menuButton');
         
         drawer.classList.remove('open');
         overlay.classList.remove('open');
+        menuButton.classList.remove('open');
     }
 
     // Chapter Management
@@ -2103,6 +2117,24 @@ class StudyApp {
 
     closeHistory() {
         document.getElementById('historyModal').classList.remove('open');
+    }
+    
+    showSettings() {
+        const modal = document.getElementById('settingsModal');
+        if (modal) {
+            modal.classList.add('open');
+            // Re-setup settings listeners since elements are now available
+            this.setupSettingsListeners();
+            // Load current settings values
+            this.loadSettings();
+        }
+    }
+    
+    closeSettings() {
+        const modal = document.getElementById('settingsModal');
+        if (modal) {
+            modal.classList.remove('open');
+        }
     }
 
     showSessionDetails(date) {

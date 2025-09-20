@@ -31,7 +31,6 @@
                 <button class="tab-button" data-tab="mcq">MCQ</button>
                 <button class="tab-button" data-tab="stopwatch">Stopwatch</button>
                 <button class="tab-button" data-tab="study-time">Study Time</button>
-                <button class="tab-button" data-tab="settings">Settings</button>
             </div>
         </nav>
 
@@ -247,9 +246,67 @@
                 </div>
             </div>
 
-            <!-- Settings Page -->
-            <div class="page" id="settings-page">
-                <div class="page-content">
+            </div>
+        </main>
+
+        <!-- Navigation Drawer -->
+        <div class="drawer-overlay" id="drawerOverlay"></div>
+        <nav class="navigation-drawer" id="navigationDrawer">
+            <div class="drawer-content">
+                <div class="drawer-header">
+                    <h3>Study Helper</h3>
+                </div>
+                
+                <div class="drawer-item">
+                    <span>Today's Study Time:</span>
+                    <span id="todayStudyTime">0 hr 0 min</span>
+                </div>
+                <button class="drawer-btn" id="historyButton">Study History</button>
+                <button class="drawer-btn" id="settingsButton">⚙️ Settings</button>
+                
+                <div class="drawer-divider"></div>
+                
+                <!-- Authentication Section -->
+                <div class="drawer-auth-section" id="drawerAuthSection">
+                    <div class="drawer-item" id="userInfoDrawer" style="display: none;">
+                        <span>Signed in as:</span>
+                        <span id="userEmailDrawer" class="user-email-text"></span>
+                    </div>
+                    <button class="drawer-btn" id="signInBtnDrawer">Sign In</button>
+                    <button class="drawer-btn" id="logoutBtnDrawer" style="display: none; background: #f44336;">Sign Out</button>
+                    
+                    <div class="drawer-divider"></div>
+                    
+                    <!-- Data Migration Section -->
+                    <div class="drawer-section" id="migrationSection" style="display: none;">
+                        <h4 style="color: #666; font-size: 14px; margin-bottom: 10px;">Data Import</h4>
+                        <button class="drawer-btn" id="importDataBtn">Import Backup File</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Study History Modal -->
+        <div class="modal" id="historyModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Study History</h3>
+                    <button class="close-btn" id="closeHistory">&times;</button>
+                </div>
+                <div class="modal-body" id="historyContent">
+                    <!-- History items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-Screen Settings Modal -->
+        <div class="fullscreen-modal" id="settingsModal">
+            <div class="fullscreen-modal-content">
+                <div class="fullscreen-modal-header">
+                    <button class="back-btn" id="closeSettings">← Back</button>
+                    <h2>Settings</h2>
+                </div>
+                <div class="fullscreen-modal-body" id="settingsContent">
                     <!-- Theme Settings -->
                     <div class="card">
                         <div class="card-content">
@@ -405,56 +462,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            </div>
-        </main>
-
-        <!-- Navigation Drawer -->
-        <div class="drawer-overlay" id="drawerOverlay"></div>
-        <nav class="navigation-drawer" id="navigationDrawer">
-            <div class="drawer-content">
-                <div class="drawer-header">
-                    <h3>Study Helper</h3>
-                </div>
-                
-                <div class="drawer-item">
-                    <span>Today's Study Time:</span>
-                    <span id="todayStudyTime">0 hr 0 min</span>
-                </div>
-                <button class="drawer-btn" id="historyButton">Study History</button>
-                
-                <div class="drawer-divider"></div>
-                
-                <!-- Authentication Section -->
-                <div class="drawer-auth-section" id="drawerAuthSection">
-                    <div class="drawer-item" id="userInfoDrawer" style="display: none;">
-                        <span>Signed in as:</span>
-                        <span id="userEmailDrawer" class="user-email-text"></span>
-                    </div>
-                    <button class="drawer-btn" id="signInBtnDrawer">Sign In</button>
-                    <button class="drawer-btn" id="logoutBtnDrawer" style="display: none; background: #f44336;">Sign Out</button>
-                    
-                    <div class="drawer-divider"></div>
-                    
-                    <!-- Data Migration Section -->
-                    <div class="drawer-section" id="migrationSection" style="display: none;">
-                        <h4 style="color: #666; font-size: 14px; margin-bottom: 10px;">Data Import</h4>
-                        <button class="drawer-btn" id="importDataBtn">Import Backup File</button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Study History Modal -->
-        <div class="modal" id="historyModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Study History</h3>
-                    <button class="close-btn" id="closeHistory">&times;</button>
-                </div>
-                <div class="modal-body" id="historyContent">
-                    <!-- History items will be dynamically added here -->
                 </div>
             </div>
         </div>
