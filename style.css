@@ -338,21 +338,254 @@ html, body {
 }
 
 /* Days Remaining Card */
+/* Days Remaining Card - Enhanced */
+.days-card {
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    transition: all 0.4s ease;
+    border: none;
+}
+
+.days-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+}
+
+.days-card-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #00C9FF 0%, #4FC3F7 50%, #00B4DB 100%);
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .days-card .card-header {
-    background: linear-gradient(135deg, #FF5722, #FF9800);
+    background: transparent;
     color: white;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+}
+
+.days-icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.countdown-icon {
+    font-size: 36px;
+    z-index: 2;
+    position: relative;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    animation: countdownPulse 2s ease-in-out infinite;
+}
+
+.icon-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    animation: iconPulseRing 3s ease-out infinite;
+}
+
+.days-content {
+    flex: 1;
 }
 
 .card-subtitle {
     font-size: 12px;
-    opacity: 0.9;
+    opacity: 0.95;
     letter-spacing: 1px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    display: block;
+    margin-bottom: 4px;
 }
 
 .days-count {
-    font-size: 32px;
-    font-weight: 700;
-    margin-top: 4px;
+    font-size: 42px;
+    font-weight: 800;
+    margin: 0;
+    text-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    line-height: 1;
+    animation: countdownGlow 4s ease-in-out infinite;
+}
+
+.countdown-message {
+    font-size: 13px;
+    opacity: 0.9;
+    margin-top: 6px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    animation: messageBreath 3s ease-in-out infinite;
+}
+
+/* Countdown Animation Circles */
+.countdown-animation {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.countdown-circle {
+    position: absolute;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    animation: countdownRotate 8s linear infinite;
+}
+
+.countdown-circle:nth-child(1) {
+    width: 80px;
+    height: 80px;
+    top: 20%;
+    right: 15%;
+    animation-delay: 0s;
+    animation-duration: 8s;
+}
+
+.countdown-circle:nth-child(2) {
+    width: 60px;
+    height: 60px;
+    top: 60%;
+    right: 25%;
+    animation-delay: 2s;
+    animation-duration: 10s;
+}
+
+.countdown-circle:nth-child(3) {
+    width: 40px;
+    height: 40px;
+    top: 40%;
+    right: 5%;
+    animation-delay: 4s;
+    animation-duration: 6s;
+}
+
+/* Sparkle Effects */
+.sparkle-effects {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.sparkle {
+    position: absolute;
+    background: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    animation: sparkleFloat 4s ease-in-out infinite;
+}
+
+.sparkle-1 {
+    width: 4px;
+    height: 4px;
+    top: 25%;
+    left: 20%;
+    animation-delay: 0s;
+}
+
+.sparkle-2 {
+    width: 6px;
+    height: 6px;
+    top: 70%;
+    left: 15%;
+    animation-delay: 1s;
+}
+
+.sparkle-3 {
+    width: 3px;
+    height: 3px;
+    top: 45%;
+    left: 25%;
+    animation-delay: 2s;
+}
+
+.sparkle-4 {
+    width: 5px;
+    height: 5px;
+    top: 15%;
+    left: 10%;
+    animation-delay: 3s;
+}
+
+/* Keyframe Animations for Days Card */
+@keyframes countdownPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes iconPulseRing {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes countdownGlow {
+    0%, 100% {
+        text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    50% {
+        text-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+}
+
+@keyframes messageBreath {
+    0%, 100% {
+        opacity: 0.9;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes countdownRotate {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.6;
+        transform: rotate(180deg) scale(1.1);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+        opacity: 0.3;
+    }
+}
+
+@keyframes sparkleFloat {
+    0%, 100% {
+        opacity: 0.8;
+        transform: translateY(0px);
+    }
+    50% {
+        opacity: 0.4;
+        transform: translateY(-10px);
+    }
 }
 
 .icon {
@@ -444,15 +677,259 @@ html, body {
 }
 
 /* Study Time Card */
+.study-time-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border: none;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    transition: all 0.4s ease;
+}
+
+.study-time-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+}
+
+.study-time-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .study-time-card .card-content {
     text-align: center;
+    position: relative;
+    z-index: 10;
+    padding: 32px 20px;
+}
+
+.study-time-header {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.study-icon {
+    font-size: 32px;
+    display: inline-block;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+.pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    animation: pulseRing 2s ease-out infinite;
+}
+
+.study-time-header h3 {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    letter-spacing: 0.5px;
+}
+
+.total-time-container {
+    position: relative;
 }
 
 .total-time {
-    font-size: 24px;
-    font-weight: 600;
-    color: #3F51B5;
+    font-size: 36px;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    line-height: 1.2;
+    animation: timeGlow 4s ease-in-out infinite;
+}
+
+.time-subtitle {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+    font-weight: 500;
     margin-top: 8px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    animation: subtitleFade 3s ease-in-out infinite;
+}
+
+/* Floating Particles Animation */
+.floating-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.particle {
+    position: absolute;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    animation: floatParticle 8s linear infinite;
+}
+
+.particle:nth-child(1) {
+    width: 4px;
+    height: 4px;
+    left: 10%;
+    animation-delay: 0s;
+    animation-duration: 8s;
+}
+
+.particle:nth-child(2) {
+    width: 6px;
+    height: 6px;
+    left: 20%;
+    animation-delay: 1s;
+    animation-duration: 10s;
+}
+
+.particle:nth-child(3) {
+    width: 3px;
+    height: 3px;
+    left: 50%;
+    animation-delay: 2s;
+    animation-duration: 7s;
+}
+
+.particle:nth-child(4) {
+    width: 5px;
+    height: 5px;
+    left: 70%;
+    animation-delay: 3s;
+    animation-duration: 9s;
+}
+
+.particle:nth-child(5) {
+    width: 4px;
+    height: 4px;
+    left: 85%;
+    animation-delay: 4s;
+    animation-duration: 11s;
+}
+
+.particle:nth-child(6) {
+    width: 7px;
+    height: 7px;
+    left: 90%;
+    animation-delay: 5s;
+    animation-duration: 6s;
+}
+
+/* Animated Waves */
+.animated-waves {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), transparent);
+    border-radius: 50%;
+    animation: waveMotion 4s ease-in-out infinite;
+}
+
+.wave1 {
+    animation-delay: 0s;
+    opacity: 0.7;
+}
+
+.wave2 {
+    animation-delay: 1s;
+    opacity: 0.5;
+}
+
+.wave3 {
+    animation-delay: 2s;
+    opacity: 0.3;
+}
+
+/* Keyframe Animations */
+@keyframes iconFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes pulseRing {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+@keyframes timeGlow {
+    0%, 100% {
+        text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    50% {
+        text-shadow: 0 4px 20px rgba(255,255,255,0.3), 0 4px 12px rgba(0,0,0,0.4);
+    }
+}
+
+@keyframes subtitleFade {
+    0%, 100% {
+        opacity: 0.9;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes floatParticle {
+    0% {
+        transform: translateY(100px) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes waveMotion {
+    0% {
+        transform: translateX(-100%) rotateZ(0deg);
+    }
+    50% {
+        transform: translateX(0%) rotateZ(180deg);
+    }
+    100% {
+        transform: translateX(100%) rotateZ(360deg);
+    }
 }
 
 /* Grade Buttons */
@@ -1521,12 +1998,14 @@ html, body {
     }
     
     .grade-buttons {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
     }
     
     .grade-btn {
-        width: 200px;
+        width: 140px;
     }
     
     .navigation-drawer {
