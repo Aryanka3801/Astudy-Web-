@@ -141,6 +141,12 @@ class StudyApp {
         this.isSignUpMode = false;
         this.dataLoaded = false;
         
+        // Quote system
+        this.lastQuoteIndex = -1;
+        this.quoteInterval = null;
+        this.quoteLanguage = 'en';
+        this.isQuoteTranslated = false;
+        
         this.init();
     }
 
@@ -149,6 +155,8 @@ class StudyApp {
         this.setupAuthenticationListeners();
         this.initFirebaseAuth();
         this.calculateDaysLeft();
+        this.fetchQuote();
+        this.startQuoteRotation();
         // loadChapters will be called after data is loaded
     }
 
@@ -1052,6 +1060,14 @@ class StudyApp {
             });
         });
 
+        // Quote language selection
+        const quoteLanguageSelect = document.getElementById('quoteLanguageSelect');
+        if (quoteLanguageSelect) {
+            quoteLanguageSelect.addEventListener('change', (e) => {
+                this.changeQuoteLanguage(e.target.value);
+            });
+        }
+
         // Toggle options
         const toggles = {
             'reducedMotion': () => this.toggleReducedMotion(),
@@ -1090,7 +1106,8 @@ class StudyApp {
             animationSpeed: 'normal',
             reducedMotion: false,
             highContrast: false,
-            compactMode: false
+            compactMode: false,
+            quoteLanguage: 'en'
         });
 
         // Apply theme
@@ -1110,6 +1127,13 @@ class StudyApp {
         this.changeAnimationSpeed(savedSettings.animationSpeed);
         const animationRadio = document.querySelector(`input[name="animationSpeed"][value="${savedSettings.animationSpeed}"]`);
         if (animationRadio) animationRadio.checked = true;
+
+        // Apply quote language
+        this.quoteLanguage = savedSettings.quoteLanguage;
+        const quoteLanguageSelect = document.getElementById('quoteLanguageSelect');
+        if (quoteLanguageSelect) {
+            quoteLanguageSelect.value = savedSettings.quoteLanguage;
+        }
 
         // Apply toggles
         const toggleSettings = {
@@ -1170,6 +1194,14 @@ class StudyApp {
         });
 
         this.saveSettingValue('animationSpeed', speed);
+    }
+
+    changeQuoteLanguage(language) {
+        this.quoteLanguage = language;
+        this.isQuoteTranslated = false;
+        this.saveSettingValue('quoteLanguage', language);
+        this.fetchQuote();
+        this.showToast(`Quote language changed to ${language === 'en' ? 'English' : language === 'hi' ? 'Hindi' : 'Marathi'}`);
     }
 
     toggleReducedMotion(forceValue = null) {
@@ -1437,6 +1469,14 @@ class StudyApp {
 
         // Study time controls
         this.setupStudyTimeControls();
+        
+        // Quote translate button
+        const quoteTranslateBtn = document.getElementById('quoteTranslateBtn');
+        if (quoteTranslateBtn) {
+            quoteTranslateBtn.addEventListener('click', () => {
+                this.translateQuote();
+            });
+        }
         
         // Swipe functionality
         this.setupSwipeListeners();
@@ -2588,6 +2628,199 @@ class StudyApp {
         }
         
         return allDates.reverse(); // Most recent first
+    }
+
+    // Quote Functionality
+    getQuotes() {
+        return [
+            { 
+                en: { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+                hi: { text: "सफलता अंतिम नहीं है, असफलता घातक नहीं है: जारी रखने का साहस ही मायने रखता है।", author: "विंस्टन चर्चिल" },
+                mr: { text: "यश अंतिम नाही, अपयश घातक नाही: पुढे चालू ठेवण्याचे धैर्य हेच महत्त्वाचे आहे।", author: "विन्स्टन चर्चिल" }
+            },
+            { 
+                en: { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+                hi: { text: "महान कार्य करने का एकमात्र तरीका है कि आप अपने काम से प्यार करें।", author: "स्टीव जॉब्स" },
+                mr: { text: "उत्कृष्ट काम करण्याचा एकमेव मार्ग म्हणजे तुम्ही जे करता त्यावर प्रेम करणे।", author: "स्टीव्ह जॉब्स" }
+            },
+            { 
+                en: { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+                hi: { text: "विश्वास करो कि तुम कर सकते हो और तुम आधे रास्ते पर हो।", author: "थियोडोर रूजवेल्ट" },
+                mr: { text: "तुम्ही करू शकता असा विश्वास ठेवा आणि तुम्ही अर्ध्या मार्गावर आहात।", author: "थिओडोर रुझवेल्ट" }
+            },
+            { 
+                en: { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+                hi: { text: "घड़ी मत देखो; वह जो करती है वह करो। आगे बढ़ते रहो।", author: "सैम लेवेनसन" },
+                mr: { text: "घड्याळ पाहू नका; ते जे करते ते करा. पुढे चालत राहा.", author: "सॅम लेव्हनसन" }
+            },
+            { 
+                en: { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+                hi: { text: "भविष्य उनका है जो अपने सपनों की सुंदरता में विश्वास करते हैं।", author: "एलेनोर रूजवेल्ट" },
+                mr: { text: "भविष्य त्यांचे आहे जे त्यांच्या स्वप्नांच्या सौंदर्यावर विश्वास ठेवतात।", author: "एलेनॉर रुझवेल्ट" }
+            },
+            { 
+                en: { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+                hi: { text: "यह हमेशा असंभव लगता है जब तक कि यह हो न जाए।", author: "नेल्सन मंडेला" },
+                mr: { text: "ते पूर्ण होईपर्यंत नेहमी अशक्य वाटते।", author: "नेल्सन मंडेला" }
+            },
+            { 
+                en: { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+                hi: { text: "आप कभी भी नया लक्ष्य निर्धारित करने या नया सपना देखने के लिए बहुत बूढ़े नहीं होते।", author: "सी.एस. लुईस" },
+                mr: { text: "नवीन ध्येय ठेवण्यासाठी किंवा नवीन स्वप्न पाहण्यासाठी तुम्ही कधीही जुने नाही.", author: "सी.एस. लुईस" }
+            },
+            { 
+                en: { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+                hi: { text: "आगे बढ़ने का रहस्य शुरुआत करना है।", author: "मार्क ट्वेन" },
+                mr: { text: "पुढे जाण्याचे रहस्य म्हणजे सुरुवात करणे.", author: "मार्क ट्वेन" }
+            },
+            { 
+                en: { text: "Don't let yesterday take up too much of today.", author: "Will Rogers" },
+                hi: { text: "कल को आज का बहुत अधिक हिस्सा न लेने दें।", author: "विल रोजर्स" },
+                mr: { text: "कालला आजचा जास्त भाग घेऊ देऊ नका.", author: "विल रॉजर्स" }
+            },
+            { 
+                en: { text: "You learn more from failure than from success. Don't let it stop you.", author: "Unknown" },
+                hi: { text: "आप सफलता से अधिक असफलता से सीखते हैं। इसे आपको रोकने न दें।", author: "अज्ञात" },
+                mr: { text: "तुम्ही यशापेक्षा अपयशातून अधिक शिकता. त्याला तुम्हाला थांबवू देऊ नका.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "It's not whether you get knocked down, it's whether you get up.", author: "Vince Lombardi" },
+                hi: { text: "महत्वपूर्ण यह नहीं है कि आप गिरते हैं या नहीं, महत्वपूर्ण यह है कि आप उठते हैं या नहीं।", author: "विंस लोम्बार्डी" },
+                mr: { text: "महत्त्वाचे हे नाही की तुम्ही पडता की नाही, महत्त्वाचे हे आहे की तुम्ही उठता की नाही.", author: "व्हिन्स लोम्बार्डी" }
+            },
+            { 
+                en: { text: "If you are working on something that you really care about, you don't have to be pushed.", author: "Steve Jobs" },
+                hi: { text: "यदि आप किसी ऐसी चीज़ पर काम कर रहे हैं जिसकी आपको वास्तव में परवाह है, तो आपको धक्का देने की ज़रूरत नहीं है।", author: "स्टीव जॉब्स" },
+                mr: { text: "जर तुम्ही अशा गोष्टीवर काम करत असाल ज्याची तुम्हाला खरोखर काळजी आहे, तर तुम्हाला ढकलण्याची गरज नाही.", author: "स्टीव्ह जॉब्स" }
+            },
+            { 
+                en: { text: "People who are crazy enough to think they can change the world, are the ones who do.", author: "Rob Siltanen" },
+                hi: { text: "जो लोग यह सोचने के लिए पर्याप्त पागल हैं कि वे दुनिया बदल सकते हैं, वही इसे बदलते हैं।", author: "रॉब सिल्टानेन" },
+                mr: { text: "जे लोक जगाला बदलू शकतात असा विचार करण्यासाठी पुरेसे वेडे आहेत, तेच त्यात बदल करतात.", author: "रॉब सिल्टानेन" }
+            },
+            { 
+                en: { text: "Failure will never overtake me if my determination to succeed is strong enough.", author: "Og Mandino" },
+                hi: { text: "यदि सफल होने का मेरा दृढ़ संकल्प पर्याप्त मजबूत है तो असफलता मुझे कभी नहीं पकड़ेगी।", author: "ओग मैंडिनो" },
+                mr: { text: "जर यशस्वी होण्याचा माझा निर्धार पुरेसा मजबूत असेल तर अपयश मला कधीही मागे टाकणार नाही.", author: "ओग मँडिनो" }
+            },
+            { 
+                en: { text: "We may encounter many defeats but we must not be defeated.", author: "Maya Angelou" },
+                hi: { text: "हमें कई हार का सामना करना पड़ सकता है लेकिन हमें हारना नहीं चाहिए।", author: "माया एंजेलो" },
+                mr: { text: "आपल्याला अनेक पराभवांचा सामना करावा लागेल पण आपण पराभूत होऊ नये.", author: "माया अँजेलो" }
+            },
+            { 
+                en: { text: "Knowing is not enough; we must apply. Wishing is not enough; we must do.", author: "Johann Wolfgang von Goethe" },
+                hi: { text: "जानना पर्याप्त नहीं है; हमें लागू करना होगा। इच्छा करना पर्याप्त नहीं है; हमें करना होगा।", author: "जोहान वोल्फगैंग वॉन गोएथे" },
+                mr: { text: "माहिती पुरेशी नाही; आपण लागू केले पाहिजे. इच्छा पुरेशी नाही; आपण केले पाहिजे.", author: "जोहान वोल्फगँग वॉन गोएथे" }
+            },
+            { 
+                en: { text: "The harder you work for something, the greater you'll feel when you achieve it.", author: "Unknown" },
+                hi: { text: "आप किसी चीज़ के लिए जितनी मेहनत करेंगे, उसे हासिल करने पर उतना ही बेहतर महसूस करेंगे।", author: "अज्ञात" },
+                mr: { text: "तुम्ही एखाद्या गोष्टीसाठी जितके कठोर परिश्रम कराल तितके ते साध्य केल्यावर तुम्हाला अधिक आनंद मिळेल.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Dream bigger. Do bigger.", author: "Unknown" },
+                hi: { text: "बड़े सपने देखो। बड़ा करो।", author: "अज्ञात" },
+                mr: { text: "मोठी स्वप्ने पहा. मोठे करा.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Don't stop when you're tired. Stop when you're done.", author: "Unknown" },
+                hi: { text: "थके होने पर मत रुको। काम खत्म होने पर रुको।", author: "अज्ञात" },
+                mr: { text: "थकल्यावर थांबू नका. पूर्ण झाल्यावर थांबा.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Wake up with determination. Go to bed with satisfaction.", author: "Unknown" },
+                hi: { text: "दृढ़ संकल्प के साथ जागो। संतुष्टि के साथ सोओ।", author: "अज्ञात" },
+                mr: { text: "निर्धाराने जागे व्हा. समाधानाने झोपा.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+                hi: { text: "सफलता छोटे-छोटे प्रयासों का योग है जो दिन-प्रतिदिन दोहराए जाते हैं।", author: "रॉबर्ट कोलियर" },
+                mr: { text: "यश म्हणजे दररोज पुनरावृत्ती होणाऱ्या छोट्या प्रयत्नांची बेरीज.", author: "रॉबर्ट कॉलियर" }
+            },
+            { 
+                en: { text: "The difference between ordinary and extraordinary is that little extra.", author: "Jimmy Johnson" },
+                hi: { text: "साधारण और असाधारण के बीच का अंतर वह थोड़ा अतिरिक्त है।", author: "जिमी जॉनसन" },
+                mr: { text: "सामान्य आणि विलक्षण यातील फरक म्हणजे तो थोडा अतिरिक्त.", author: "जिमी जॉन्सन" }
+            },
+            { 
+                en: { text: "Your limitation—it's only your imagination.", author: "Unknown" },
+                hi: { text: "आपकी सीमा - यह केवल आपकी कल्पना है।", author: "अज्ञात" },
+                mr: { text: "तुमची मर्यादा—ती फक्त तुमची कल्पना आहे.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+                hi: { text: "अपने आप को आगे बढ़ाओ, क्योंकि कोई और आपके लिए ऐसा नहीं करने वाला।", author: "अज्ञात" },
+                mr: { text: "स्वतःला ढकलून दे, कारण तुमच्यासाठी इतर कोणी असे करणार नाही.", author: "अज्ञात" }
+            },
+            { 
+                en: { text: "Great things never come from comfort zones.", author: "Unknown" },
+                hi: { text: "महान चीजें कभी भी आराम क्षेत्र से नहीं आतीं।", author: "अज्ञात" },
+                mr: { text: "महान गोष्टी कधीच आरामाच्या क्षेत्रातून येत नाहीत.", author: "अज्ञात" }
+            }
+        ];
+    }
+
+    fetchQuote() {
+        const quoteText = document.getElementById('quoteText');
+        const quoteAuthor = document.getElementById('quoteAuthor');
+        if (!quoteText || !quoteAuthor) return;
+        
+        const quotes = this.getQuotes();
+        
+        // Get a random quote that's different from the last one
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * quotes.length);
+        } while (randomIndex === this.lastQuoteIndex && quotes.length > 1);
+        
+        this.lastQuoteIndex = randomIndex;
+        // Always show quotes in English by default
+        const selectedQuote = quotes[randomIndex].en;
+        
+        this.isQuoteTranslated = false;
+        quoteText.textContent = selectedQuote.text;
+        quoteAuthor.textContent = `— ${selectedQuote.author}`;
+    }
+    
+    translateQuote() {
+        const quoteText = document.getElementById('quoteText');
+        const quoteAuthor = document.getElementById('quoteAuthor');
+        if (!quoteText || !quoteAuthor || this.lastQuoteIndex === -1) return;
+        
+        const quotes = this.getQuotes();
+        const currentQuote = quotes[this.lastQuoteIndex];
+        
+        // Toggle between preferred language and English
+        if (this.quoteLanguage === 'en') {
+            // Already in English, no translation needed
+            this.showToast('Quote is already in English');
+            return;
+        }
+        
+        if (this.isQuoteTranslated) {
+            // Show back in English
+            const englishQuote = currentQuote.en;
+            quoteText.textContent = englishQuote.text;
+            quoteAuthor.textContent = `— ${englishQuote.author}`;
+            this.isQuoteTranslated = false;
+        } else {
+            // Show in preferred language
+            const translatedQuote = currentQuote[this.quoteLanguage];
+            quoteText.textContent = translatedQuote.text;
+            quoteAuthor.textContent = `— ${translatedQuote.author}`;
+            this.isQuoteTranslated = true;
+        }
+    }
+    
+    startQuoteRotation() {
+        // Change quote every 30 minutes
+        if (this.quoteInterval) {
+            clearInterval(this.quoteInterval);
+        }
+        this.quoteInterval = setInterval(() => {
+            this.fetchQuote();
+        }, 1800000); // 30 minutes
     }
 
     // Utility Functions

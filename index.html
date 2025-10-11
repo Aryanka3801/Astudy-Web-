@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -71,6 +71,32 @@
                                 <h2 class="days-count" id="daysLeft">--</h2>
                                 <div class="countdown-message">Until MHT-CET Exam</div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Quote Card -->
+                    <div class="card quote-card">
+                        <div class="quote-card-background">
+                            <div class="quote-particles">
+                                <div class="quote-particle"></div>
+                                <div class="quote-particle"></div>
+                                <div class="quote-particle"></div>
+                                <div class="quote-particle"></div>
+                                <div class="quote-particle"></div>
+                            </div>
+                        </div>
+                        <div class="card-content quote-content">
+                            <div class="quote-icon">💭</div>
+                            <div class="quote-text" id="quoteText"></div>
+                            <div class="quote-author" id="quoteAuthor"></div>
+                            <button class="quote-translate-btn" id="quoteTranslateBtn" title="Translate quote">
+                                <div class="translate-icon-wrapper">
+                                    <span class="translate-text">A</span>
+                                    <span class="translate-arrow">→</span>
+                                    <span class="translate-text translate-hindi">अ</span>
+                                </div>
+                                <div class="translate-glow"></div>
+                            </button>
                         </div>
                     </div>
 
@@ -372,6 +398,22 @@
                                         <span>Clean Minimal</span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Language Settings -->
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>🌍 Language Settings</h3>
+                            <div class="settings-section">
+                                <label class="setting-label">Quote Language</label>
+                                <select id="quoteLanguageSelect" class="form-select">
+                                    <option value="en">English</option>
+                                    <option value="hi">Hindi (हिंदी)</option>
+                                    <option value="mr">Marathi (मराठी)</option>
+                                </select>
+                                <small class="setting-description">Choose your preferred language for motivational quotes</small>
                             </div>
                         </div>
                     </div>
