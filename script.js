@@ -914,6 +914,10 @@ class StudyApp {
     }
 
     mergeImportedData(importedData) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         // Safely merge MCQ counts (add to existing counts)
         this.mcqCounts.Physics = (this.mcqCounts.Physics || 0) + importedData.mcqCounts.Physics;
         this.mcqCounts.Chemistry = (this.mcqCounts.Chemistry || 0) + importedData.mcqCounts.Chemistry;
@@ -936,13 +940,12 @@ class StudyApp {
             });
         });
 
-        // Add to total study minutes
-        this.totalStudyMinutes = (this.totalStudyMinutes || 0) + importedData.totalStudyMinutes;
-
         // Merge daily study times (preserve existing, add new dates)
+        let newlyAddedMinutes = 0;
         Object.keys(importedData.dailyStudyTimes).forEach(date => {
             if (!this.dailyStudyTimes[date]) {
                 this.dailyStudyTimes[date] = importedData.dailyStudyTimes[date];
+                newlyAddedMinutes += importedData.dailyStudyTimes[date];
             }
             // If date already exists, keep existing value to avoid double-counting
         });
@@ -954,6 +957,9 @@ class StudyApp {
             }
             // If date already exists, keep existing sessions to avoid duplicates
         });
+
+        // Add only the newly imported minutes to avoid double-counting overlapping dates
+        this.totalStudyMinutes = (this.totalStudyMinutes || 0) + newlyAddedMinutes;
     }
 
     getValidChaptersForSubject(subject) {
@@ -981,14 +987,14 @@ class StudyApp {
             Maths: [...importedData.completedChapters.Maths]
         };
 
-        // Replace total study minutes
-        this.totalStudyMinutes = importedData.totalStudyMinutes;
-
         // Replace daily study times
         this.dailyStudyTimes = { ...importedData.dailyStudyTimes };
 
         // Replace session history
         this.sessionHistory = { ...importedData.sessionHistory };
+
+        // Use the total study minutes from the backup file
+        this.totalStudyMinutes = importedData.totalStudyMinutes;
 
         // Reset current study session
         this.studySession = {
@@ -1036,19 +1042,6 @@ class StudyApp {
             });
         }
 
-        // Study goal slider
-        const studyGoalSlider = document.getElementById('studyGoalSlider');
-        const studyGoalValue = document.getElementById('studyGoalValue');
-        if (studyGoalSlider && studyGoalValue) {
-            studyGoalSlider.addEventListener('input', (e) => {
-                const minutes = parseInt(e.target.value);
-                const hours = Math.floor(minutes / 60);
-                const mins = minutes % 60;
-                studyGoalValue.textContent = `${hours}h ${mins}m`;
-                this.saveSettingValue('studyGoal', minutes);
-            });
-        }
-
         // Animation speed radios
         const animationRadios = document.querySelectorAll('input[name="animationSpeed"]');
         animationRadios.forEach(radio => {
@@ -1063,10 +1056,7 @@ class StudyApp {
         const toggles = {
             'reducedMotion': () => this.toggleReducedMotion(),
             'highContrast': () => this.toggleHighContrast(),
-            'compactMode': () => this.toggleCompactMode(),
-            'studyReminders': () => this.saveSettingValue('studyReminders', document.getElementById('studyReminders').checked),
-            'progressNotifications': () => this.saveSettingValue('progressNotifications', document.getElementById('progressNotifications').checked),
-            'autoSaveProgress': () => this.saveSettingValue('autoSaveProgress', document.getElementById('autoSaveProgress').checked)
+            'compactMode': () => this.toggleCompactMode()
         };
 
         Object.keys(toggles).forEach(toggleId => {
@@ -1075,14 +1065,6 @@ class StudyApp {
                 toggle.addEventListener('change', toggles[toggleId]);
             }
         });
-
-        // Default subject selector
-        const defaultSubject = document.getElementById('defaultSubject');
-        if (defaultSubject) {
-            defaultSubject.addEventListener('change', (e) => {
-                this.saveSettingValue('defaultSubject', e.target.value);
-            });
-        }
 
         // Action buttons
         const exportData = document.getElementById('exportData');
@@ -1108,12 +1090,7 @@ class StudyApp {
             animationSpeed: 'normal',
             reducedMotion: false,
             highContrast: false,
-            compactMode: false,
-            studyGoal: 120,
-            defaultSubject: '',
-            studyReminders: false,
-            progressNotifications: true,
-            autoSaveProgress: true
+            compactMode: false
         });
 
         // Apply theme
@@ -1138,10 +1115,7 @@ class StudyApp {
         const toggleSettings = {
             'reducedMotion': savedSettings.reducedMotion,
             'highContrast': savedSettings.highContrast,
-            'compactMode': savedSettings.compactMode,
-            'studyReminders': savedSettings.studyReminders,
-            'progressNotifications': savedSettings.progressNotifications,
-            'autoSaveProgress': savedSettings.autoSaveProgress
+            'compactMode': savedSettings.compactMode
         };
 
         Object.keys(toggleSettings).forEach(toggleId => {
@@ -1154,22 +1128,6 @@ class StudyApp {
                 if (toggleId === 'compactMode' && toggleSettings[toggleId]) this.toggleCompactMode(true);
             }
         });
-
-        // Apply study goal
-        const studyGoalSlider = document.getElementById('studyGoalSlider');
-        const studyGoalValue = document.getElementById('studyGoalValue');
-        if (studyGoalSlider && studyGoalValue) {
-            studyGoalSlider.value = savedSettings.studyGoal;
-            const hours = Math.floor(savedSettings.studyGoal / 60);
-            const mins = savedSettings.studyGoal % 60;
-            studyGoalValue.textContent = `${hours}h ${mins}m`;
-        }
-
-        // Apply default subject
-        const defaultSubject = document.getElementById('defaultSubject');
-        if (defaultSubject) {
-            defaultSubject.value = savedSettings.defaultSubject;
-        }
     }
 
     changeTheme(themeName) {
@@ -1247,23 +1205,51 @@ class StudyApp {
     }
 
     exportProgressData() {
-        const exportData = {
-            timestamp: new Date().toISOString(),
-            completedChapters: this.completedChapters,
-            mcqCounts: this.mcqCounts,
-            totalStudyMinutes: this.totalStudyMinutes,
-            dailyStudyTimes: this.dailyStudyTimes,
-            sessionHistory: this.sessionHistory,
-            settings: this.getData('appSettings', {})
-        };
+        const now = new Date();
+        const timestamp = now.toLocaleString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(/(\d+)\/(\d+)\/(\d+),/, '$3-$1-$2');
 
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const physicsChapters = this.completedChapters.Physics.length;
+        const chemistryChapters = this.completedChapters.Chemistry.length;
+        const mathsChapters = this.completedChapters.Maths.length;
+
+        const physicsPercentage = Math.round((physicsChapters / TOTAL_CHAPTERS.Physics) * 100);
+        const chemistryPercentage = Math.round((chemistryChapters / TOTAL_CHAPTERS.Chemistry) * 100);
+        const mathsPercentage = Math.round((mathsChapters / TOTAL_CHAPTERS.Maths) * 100);
+
+        let textContent = '';
+        textContent += `Timestamp: ${timestamp}\n`;
+        textContent += `Physics Chapters: ${physicsChapters}\n`;
+        textContent += `Chemistry Chapters: ${chemistryChapters}\n`;
+        textContent += `Maths Chapters: ${mathsChapters}\n`;
+        textContent += `Physics MCQs: ${this.mcqCounts.Physics}\n`;
+        textContent += `Chemistry MCQs: ${this.mcqCounts.Chemistry}\n`;
+        textContent += `Maths MCQs: ${this.mcqCounts.Maths}\n`;
+        textContent += `Total Study Minutes: ${this.totalStudyMinutes}\n`;
+        textContent += `Physics Percentage: ${physicsPercentage}\n`;
+        textContent += `Chemistry Percentage: ${chemistryPercentage}\n`;
+        textContent += `Maths Percentage: ${mathsPercentage}\n`;
+        textContent += `ChemistryChapters: ${this.completedChapters.Chemistry.join(',')}\n`;
+        textContent += `PhysicsChapters: ${this.completedChapters.Physics.join(',')}\n`;
+        textContent += `MathsChapters: ${this.completedChapters.Maths.join(',')}\n`;
+
+        Object.entries(this.dailyStudyTimes).forEach(([date, minutes]) => {
+            textContent += `StudyHistory:${date}:${minutes}\n`;
+        });
+
+        const dataBlob = new Blob([textContent], { type: 'text/plain' });
         const url = URL.createObjectURL(dataBlob);
         
         const link = document.createElement('a');
         link.href = url;
-        link.download = `mht-cet-progress-${new Date().toISOString().slice(0, 10)}.json`;
+        link.download = `progress_backup_${Date.now()}.txt`;
         link.click();
         
         URL.revokeObjectURL(url);
@@ -1984,6 +1970,10 @@ class StudyApp {
     }
 
     endStudySession() {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         if (this.studySession.isActive) {
             let totalTime = this.studySession.pausedTime;
             if (!this.studySession.isPaused) {
@@ -2072,6 +2062,10 @@ class StudyApp {
 
     // History Management
     showHistory() {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         const modal = document.getElementById('historyModal');
         const content = document.getElementById('historyContent');
         
@@ -2218,15 +2212,15 @@ class StudyApp {
             return `${hours}:${minutes}`;
         };
         
-        // Create edit form
+        // Create edit form - START TIME IS READONLY
         sessionItem.innerHTML = `
             <div class="session-edit-form">
                 <div class="session-number">Session ${sessionIndex + 1} - Editing</div>
                 <div class="edit-fields">
                     <div class="time-inputs">
                         <label>
-                            Start Time:
-                            <input type="time" class="start-time-input" value="${formatTimeForInput(startTime)}" />
+                            Start Time (readonly):
+                            <input type="time" class="start-time-input" value="${formatTimeForInput(startTime)}" readonly />
                         </label>
                         <label>
                             End Time:
@@ -2255,7 +2249,7 @@ class StudyApp {
         const durationInput = sessionItem.querySelector('.duration-input');
         const durationSpan = sessionItem.querySelector('.calculated-duration');
         
-        // Update calculated duration display when times change
+        // Update calculated duration display when end time changes
         const updateDuration = () => {
             const startVal = startInput.value;
             const endVal = endInput.value;
@@ -2320,7 +2314,7 @@ class StudyApp {
             }
         };
         
-        startInput.addEventListener('change', updateDuration);
+        // Only end time can trigger duration update (start is readonly)
         endInput.addEventListener('change', updateDuration);
         durationInput.addEventListener('input', updateEndTimeFromDuration);
         
@@ -2334,9 +2328,9 @@ class StudyApp {
             }
         });
         
-        // Save button
+        // Save button - pass the original session for comparison
         sessionItem.querySelector('.save-session-btn').addEventListener('click', () => {
-            this.saveSessionEdit(date, sessionIndex, startInput.value, endInput.value, parseInt(durationInput.value));
+            this.saveSessionEdit(date, sessionIndex, session, startInput.value, endInput.value, parseInt(durationInput.value));
         });
         
         // Cancel button
@@ -2350,13 +2344,17 @@ class StudyApp {
         });
     }
 
-    saveSessionEdit(date, sessionIndex, startTimeStr, endTimeStr, durationMinutes = null) {
+    saveSessionEdit(date, sessionIndex, originalSession, startTimeStr, endTimeStr, durationMinutes = null) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         if (!startTimeStr) {
             alert('Please enter a start time');
             return;
         }
         
-        // Parse the start time
+        // Parse the start time (readonly, but we need it for calculations)
         const [startHour, startMin] = startTimeStr.split(':').map(Number);
         if (isNaN(startHour) || isNaN(startMin)) {
             alert('Invalid start time format');
@@ -2371,7 +2369,7 @@ class StudyApp {
         let duration;
         let endTime;
         
-        // Use provided duration if available, otherwise calculate from times
+        // Use provided duration if available, otherwise calculate from end time
         if (durationMinutes && durationMinutes > 0) {
             // Validate duration range
             if (durationMinutes < 1 || durationMinutes > 1440) {
@@ -2442,7 +2440,12 @@ class StudyApp {
             }
         }
         
-        // Update the session
+        // INCREMENTAL UPDATE LOGIC - This fixes the Firebase import bug!
+        // Calculate the difference between old and new duration
+        const oldDuration = originalSession.duration;
+        const durationDifference = duration - oldDuration;
+        
+        // Update the session with new values
         const sessions = this.sessionHistory[date] || [];
         sessions[sessionIndex] = {
             startTime: startTime.toISOString(),
@@ -2453,11 +2456,32 @@ class StudyApp {
         // Update session history
         this.sessionHistory[date] = sessions;
         
-        // Recalculate daily total
-        this.recalculateDailyTotal(date);
+        // INCREMENTAL UPDATE: Add/subtract the difference to existing totals
+        // This preserves any manual changes made in Firebase console
+        if (!this.dailyStudyTimes) {
+            this.dailyStudyTimes = {};
+        }
         
-        // Save to storage
+        // Update daily total by adding the difference
+        const currentDailyTotal = this.dailyStudyTimes[date] || 0;
+        this.dailyStudyTimes[date] = currentDailyTotal + durationDifference;
+        
+        // Update total study minutes by adding the difference
+        this.totalStudyMinutes = (this.totalStudyMinutes || 0) + durationDifference;
+        
+        // Ensure no negative values
+        if (this.dailyStudyTimes[date] < 0) {
+            this.dailyStudyTimes[date] = 0;
+        }
+        if (this.totalStudyMinutes < 0) {
+            this.totalStudyMinutes = 0;
+        }
+        
+        // Save to storage (Firebase or localStorage)
         this.saveData();
+        
+        // Update the UI to reflect the new total study time
+        this.updateUI();
         
         // Show success message
         this.showToast('Session updated successfully');
@@ -2467,26 +2491,58 @@ class StudyApp {
     }
 
     deleteSession(date, sessionIndex) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
             return;
         }
         
-        // Remove the session
+        // Get the session before deleting to know how much to subtract
         const sessions = this.sessionHistory[date] || [];
+        const sessionToDelete = sessions[sessionIndex];
+        
+        if (!sessionToDelete) {
+            alert('Session not found');
+            return;
+        }
+        
+        const deletedDuration = sessionToDelete.duration;
+        
+        // Remove the session
         sessions.splice(sessionIndex, 1);
         
         // Update session history
         if (sessions.length === 0) {
             delete this.sessionHistory[date];
+            // Also remove the date from dailyStudyTimes if no sessions left
+            delete this.dailyStudyTimes[date];
         } else {
             this.sessionHistory[date] = sessions;
+            // INCREMENTAL UPDATE: Subtract the deleted duration from daily total
+            const currentDailyTotal = this.dailyStudyTimes[date] || 0;
+            this.dailyStudyTimes[date] = currentDailyTotal - deletedDuration;
+            
+            // Ensure no negative values
+            if (this.dailyStudyTimes[date] < 0) {
+                this.dailyStudyTimes[date] = 0;
+            }
         }
         
-        // Recalculate daily total
-        this.recalculateDailyTotal(date);
+        // INCREMENTAL UPDATE: Subtract from total study minutes
+        this.totalStudyMinutes = (this.totalStudyMinutes || 0) - deletedDuration;
         
-        // Save to storage
+        // Ensure no negative values
+        if (this.totalStudyMinutes < 0) {
+            this.totalStudyMinutes = 0;
+        }
+        
+        // Save to storage (Firebase or localStorage)
         this.saveData();
+        
+        // Update the UI to reflect the new total study time
+        this.updateUI();
         
         // Show success message
         this.showToast('Session deleted successfully');
@@ -2496,6 +2552,10 @@ class StudyApp {
     }
 
     recalculateDailyTotal(date) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         const sessions = this.sessionHistory[date] || [];
         const totalMinutes = sessions.reduce((total, session) => total + session.duration, 0);
         
@@ -2507,6 +2567,10 @@ class StudyApp {
     }
 
     getAllDatesInRange() {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
         const dates = Object.keys(this.dailyStudyTimes);
         const today = this.getTodayKey();
         
