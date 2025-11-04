@@ -345,6 +345,151 @@ class StudyApp {
         return null;
     }
 
+    // Helper: Check if data contains real progress (not just defaults)
+    hasRealData(data) {
+        // Check if there's any meaningful progress data
+        if (data.totalStudyMinutes && data.totalStudyMinutes > 0) {
+            return true;
+        }
+        
+        if (data.completedChapters) {
+            const totalCompleted = Object.values(data.completedChapters)
+                .reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0);
+            if (totalCompleted > 0) {
+                return true;
+            }
+        }
+        
+        if (data.mcqCounts) {
+            const totalMcqs = Object.values(data.mcqCounts)
+                .reduce((sum, count) => sum + (count || 0), 0);
+            if (totalMcqs > 0) {
+                return true;
+            }
+        }
+        
+        if (data.dailyStudyTimes && Object.keys(data.dailyStudyTimes).length > 0) {
+            return true;
+        }
+        
+        if (data.sessionHistory && Object.keys(data.sessionHistory).length > 0) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Helper: Compare two data sources and determine which has more progress
+    hasMoreProgress(localData, firebaseData) {
+        // Check if local data has any real progress (INCLUDING MCQs and study time)
+        const localHasRealData = this.hasRealData(localData);
+        const firebaseHasRealData = this.hasRealData(firebaseData);
+        
+        // If no local data, Firebase is better
+        if (!localHasRealData) {
+            return false;
+        }
+        
+        // If no Firebase data, local is better
+        if (!firebaseHasRealData) {
+            return true;
+        }
+        
+        // Calculate total progress for local data
+        const localTotalMinutes = localData.totalStudyMinutes || 0;
+        const localCompletedCount = this.countCompletedChapters(localData.completedChapters);
+        const localMcqCount = this.countMcqs(localData.mcqCounts);
+        const localStudyTimeEntries = this.countStudyTimeEntries(localData.dailyStudyTimes);
+        
+        // Calculate total progress for Firebase data
+        const firebaseTotalMinutes = firebaseData.totalStudyMinutes || 0;
+        const firebaseCompletedCount = this.countCompletedChapters(firebaseData.completedChapters);
+        const firebaseMcqCount = this.countMcqs(firebaseData.mcqCounts);
+        const firebaseStudyTimeEntries = this.countStudyTimeEntries(firebaseData.dailyStudyTimes);
+        
+        // ANY measurable advantage in local data makes it the winner
+        // This prevents discarding even small progress updates
+        if (localCompletedCount > firebaseCompletedCount) {
+            console.log('Local has more chapters:', localCompletedCount, 'vs', firebaseCompletedCount);
+            return true;
+        }
+        
+        if (localTotalMinutes > firebaseTotalMinutes) {
+            console.log('Local has more study minutes:', localTotalMinutes, 'vs', firebaseTotalMinutes);
+            return true;
+        }
+        
+        if (localMcqCount > firebaseMcqCount) {
+            console.log('Local has more MCQs:', localMcqCount, 'vs', firebaseMcqCount);
+            return true;
+        }
+        
+        if (localStudyTimeEntries > firebaseStudyTimeEntries) {
+            console.log('Local has more study time entries:', localStudyTimeEntries, 'vs', firebaseStudyTimeEntries);
+            return true;
+        }
+        
+        // If Firebase has more progress in any metric, use Firebase
+        if (firebaseCompletedCount > localCompletedCount ||
+            firebaseTotalMinutes > localTotalMinutes ||
+            firebaseMcqCount > localMcqCount ||
+            firebaseStudyTimeEntries > localStudyTimeEntries) {
+            console.log('Firebase has more progress');
+            return false;
+        }
+        
+        // If both have the same progress metrics, use timestamp if available
+        if (localData.timestamp && firebaseData.timestamp) {
+            const isLocalNewer = localData.timestamp > firebaseData.timestamp;
+            console.log('Same progress, comparing timestamps. Local newer:', isLocalNewer);
+            return isLocalNewer;
+        }
+        
+        // If no timestamps, check if local has real data that Firebase doesn't
+        // This handles the case where an unsigned user has local progress
+        if (!localData.timestamp && !firebaseData.timestamp) {
+            const localHasRealData = this.hasRealData(localData);
+            console.log('No timestamps. Local has real data:', localHasRealData);
+            return localHasRealData;
+        }
+        
+        // If only one has a timestamp, prefer the one with timestamp (it's more recent)
+        if (localData.timestamp && !firebaseData.timestamp) {
+            console.log('Local has timestamp, Firebase does not');
+            return true;
+        }
+        
+        // Default to Firebase if still no clear winner
+        console.log('No clear winner, defaulting to Firebase');
+        return false;
+    }
+    
+    // Helper: Count total MCQs
+    countMcqs(mcqCounts) {
+        if (!mcqCounts) return 0;
+        return Object.values(mcqCounts).reduce((total, count) => total + (count || 0), 0);
+    }
+    
+    // Helper: Count study time entries
+    countStudyTimeEntries(dailyStudyTimes) {
+        if (!dailyStudyTimes) return 0;
+        return Object.keys(dailyStudyTimes).length;
+    }
+
+    // Helper: Count total completed chapters
+    countCompletedChapters(completedChapters) {
+        if (!completedChapters) return 0;
+        
+        return Object.values(completedChapters).reduce((total, chapters) => {
+            return total + (Array.isArray(chapters) ? chapters.length : 0);
+        }, 0);
+    }
+
+    // Helper: Get total completed chapters count for current data
+    getCompletedChaptersCount() {
+        return this.countCompletedChapters(this.completedChapters);
+    }
+
     // Firestore Data Management
     async saveDataToFirestore() {
         if (!this.currentUser || !window.firebaseDb || !window.firebaseDbFunctions) {
@@ -355,6 +500,8 @@ class StudyApp {
         try {
             const { doc, setDoc } = window.firebaseDbFunctions;
             const userDoc = doc(window.firebaseDb, 'users', this.currentUser.uid);
+            
+            const timestamp = new Date().toISOString();
             
             // Clean the data before saving
             const cleanedData = {
@@ -370,12 +517,15 @@ class StudyApp {
                     isActive: false,
                     isPaused: false
                 }),
-                lastUpdated: new Date().toISOString()
+                lastUpdated: timestamp
             };
             
             await setDoc(userDoc, cleanedData, { merge: true });
             
-            console.log('Data saved to Firestore successfully');
+            // Also save timestamp to local storage to keep them in sync
+            this.setData('lastUpdated', timestamp);
+            
+            console.log('Data saved to Firestore successfully at', timestamp);
         } catch (error) {
             console.error('Error saving to Firestore:', error);
             console.error('Data that failed to save:', JSON.stringify({
@@ -394,6 +544,7 @@ class StudyApp {
             this.setData('dailyStudyTimes', this.dailyStudyTimes);
             this.setData('sessionHistory', this.sessionHistory);
             this.setData('studySession', this.studySession);
+            this.setData('lastUpdated', new Date().toISOString());
         }
     }
 
@@ -410,30 +561,76 @@ class StudyApp {
             const docSnap = await getDoc(userDoc);
             
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                this.completedChapters = data.completedChapters || {
-                    Physics: [],
-                    Chemistry: [],
-                    Maths: []
-                };
-                this.mcqCounts = data.mcqCounts || {
-                    Physics: 0,
-                    Chemistry: 0,
-                    Maths: 0
-                };
-                this.totalStudyMinutes = data.totalStudyMinutes || 0;
-                this.dailyStudyTimes = data.dailyStudyTimes || {};
-                this.sessionHistory = data.sessionHistory || {};
-                this.studySession = data.studySession || {
-                    originalStartTime: null,
-                    startTime: null,
-                    pausedTime: 0,
-                    isActive: false,
-                    isPaused: false
-                };
-                this.showToast('Progress loaded from cloud');
+                const firebaseData = docSnap.data();
+                const firebaseTimestamp = firebaseData.lastUpdated ? new Date(firebaseData.lastUpdated) : null;
+                
+                // Load local storage data for comparison
+                const localCompletedChapters = this.getData('completedChapters', null);
+                const localMcqCounts = this.getData('mcqCounts', null);
+                const localTotalStudyMinutes = this.getData('totalStudyMinutes', null);
+                const localDailyStudyTimes = this.getData('dailyStudyTimes', null);
+                const localTimestamp = this.getData('lastUpdated', null) ? new Date(this.getData('lastUpdated', null)) : null;
+                
+                // Check if local data has more progress than Firebase
+                const localHasMoreProgress = this.hasMoreProgress(
+                    {
+                        completedChapters: localCompletedChapters,
+                        mcqCounts: localMcqCounts,
+                        totalStudyMinutes: localTotalStudyMinutes,
+                        dailyStudyTimes: localDailyStudyTimes,
+                        timestamp: localTimestamp
+                    },
+                    {
+                        completedChapters: firebaseData.completedChapters,
+                        mcqCounts: firebaseData.mcqCounts,
+                        totalStudyMinutes: firebaseData.totalStudyMinutes,
+                        dailyStudyTimes: firebaseData.dailyStudyTimes,
+                        timestamp: firebaseTimestamp
+                    }
+                );
+                
+                if (localHasMoreProgress) {
+                    // Local data is more recent or has more progress - use it and sync to Firebase
+                    console.log('Local data has more progress, syncing to cloud...');
+                    this.loadDataFromLocalStorage();
+                    await this.saveDataToFirestore();
+                    this.showToast('Local progress synced to cloud');
+                } else {
+                    // Use Firebase data (it's more recent or has more progress)
+                    this.completedChapters = firebaseData.completedChapters || {
+                        Physics: [],
+                        Chemistry: [],
+                        Maths: []
+                    };
+                    this.mcqCounts = firebaseData.mcqCounts || {
+                        Physics: 0,
+                        Chemistry: 0,
+                        Maths: 0
+                    };
+                    this.totalStudyMinutes = firebaseData.totalStudyMinutes || 0;
+                    this.dailyStudyTimes = firebaseData.dailyStudyTimes || {};
+                    this.sessionHistory = firebaseData.sessionHistory || {};
+                    this.studySession = firebaseData.studySession || {
+                        originalStartTime: null,
+                        startTime: null,
+                        pausedTime: 0,
+                        isActive: false,
+                        isPaused: false
+                    };
+                    
+                    // Also save to local storage to keep them in sync
+                    this.setData('completedChapters', this.completedChapters);
+                    this.setData('mcqCounts', this.mcqCounts);
+                    this.setData('totalStudyMinutes', this.totalStudyMinutes);
+                    this.setData('dailyStudyTimes', this.dailyStudyTimes);
+                    this.setData('sessionHistory', this.sessionHistory);
+                    this.setData('studySession', this.studySession);
+                    this.setData('lastUpdated', firebaseData.lastUpdated);
+                    
+                    this.showToast('Progress loaded from cloud');
+                }
             } else {
-                // First time user - check for existing localStorage data to migrate
+                // No Firebase data exists yet - check for local data to migrate
                 this.migrateFromLocalStorage();
             }
         } catch (error) {
@@ -455,8 +652,17 @@ class StudyApp {
         const localDailyStudyTimes = this.getData('dailyStudyTimes', null);
         const localSessionHistory = this.getData('sessionHistory', null);
         
-        if (localCompletedChapters || localMcqCounts || localTotalStudyMinutes || localDailyStudyTimes || localSessionHistory) {
-            // User has existing data, migrate it
+        // Check if there's ANY real data in local storage
+        const hasRealLocalData = this.hasRealData({
+            completedChapters: localCompletedChapters,
+            mcqCounts: localMcqCounts,
+            totalStudyMinutes: localTotalStudyMinutes,
+            dailyStudyTimes: localDailyStudyTimes,
+            sessionHistory: localSessionHistory
+        });
+        
+        if (hasRealLocalData) {
+            // User has existing data, migrate it to Firebase
             this.completedChapters = localCompletedChapters || {
                 Physics: [],
                 Chemistry: [],
@@ -478,11 +684,20 @@ class StudyApp {
                 isPaused: false
             });
             
+            console.log('Migrating local data to Firebase:', {
+                totalStudyMinutes: this.totalStudyMinutes,
+                completedChaptersCount: this.getCompletedChaptersCount()
+            });
+            
             // Save migrated data to Firestore
             this.saveDataToFirestore();
             this.showToast('Local progress migrated to cloud');
         } else {
+            // No local data - initialize empty data but DON'T save to Firebase
+            // This prevents overwriting existing Firebase data from another device
+            console.log('No local data found, initializing defaults (not saving to Firebase)');
             this.initializeDefaultData();
+            this.showToast('Welcome! Your progress will be synced to cloud');
         }
     }
 
@@ -558,12 +773,15 @@ class StudyApp {
             this.saveDataToFirestore();
         } else {
             // Fallback to localStorage when not authenticated
+            const timestamp = new Date().toISOString();
             this.setData('completedChapters', this.completedChapters);
             this.setData('mcqCounts', this.mcqCounts);
             this.setData('totalStudyMinutes', this.totalStudyMinutes);
             this.setData('dailyStudyTimes', this.dailyStudyTimes);
             this.setData('sessionHistory', this.sessionHistory);
             this.setData('studySession', this.studySession);
+            this.setData('lastUpdated', timestamp);
+            console.log('Data saved to localStorage with timestamp:', timestamp);
         }
     }
 
@@ -2218,6 +2436,9 @@ class StudyApp {
                         `;
                     }).join('')}
             </div>
+            <div class="add-session-container">
+                <button class="btn btn-primary" id="addNewSessionBtn" data-date="${date}">+ Add Session</button>
+            </div>
         `;
         
         // Add back button functionality
@@ -2232,6 +2453,15 @@ class StudyApp {
                 this.editSession(date, sessionIndex, sessions);
             });
         });
+        
+        // Add "Add Session" button functionality
+        const addSessionBtn = document.getElementById('addNewSessionBtn');
+        if (addSessionBtn) {
+            addSessionBtn.addEventListener('click', (e) => {
+                const date = e.target.dataset.date;
+                this.addNewSession(date);
+            });
+        }
         
         modal.classList.add('open');
     }
@@ -2591,9 +2821,232 @@ class StudyApp {
         this.showSessionDetails(date);
     }
 
+    addNewSession(date) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
+        const sessionsList = document.getElementById('sessionDetailsList');
+        if (!sessionsList) return;
+        
+        // Get current time for default values
+        const now = new Date();
+        const currentHour = now.getHours().toString().padStart(2, '0');
+        const currentMinute = now.getMinutes().toString().padStart(2, '0');
+        const defaultStartTime = `${currentHour}:${currentMinute}`;
+        
+        // Calculate default end time (1 hour later)
+        const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+        const endHour = oneHourLater.getHours().toString().padStart(2, '0');
+        const endMinute = oneHourLater.getMinutes().toString().padStart(2, '0');
+        const defaultEndTime = `${endHour}:${endMinute}`;
+        
+        // Create new session form
+        const newSessionForm = document.createElement('div');
+        newSessionForm.className = 'session-detail-item new-session-form';
+        newSessionForm.innerHTML = `
+            <div class="session-edit-form">
+                <div class="session-number">New Session</div>
+                <div class="edit-fields">
+                    <div class="time-inputs">
+                        <label>
+                            Start Time:
+                            <input type="time" class="start-time-input" value="${defaultStartTime}" />
+                        </label>
+                        <label>
+                            End Time:
+                            <input type="time" class="end-time-input" value="${defaultEndTime}" />
+                        </label>
+                        <label>
+                            Duration (minutes):
+                            <input type="number" class="duration-input" value="60" min="1" max="1440" />
+                        </label>
+                    </div>
+                    <div class="duration-display">
+                        Calculated Duration: <span class="calculated-duration">1h 0m</span>
+                    </div>
+                </div>
+                <div class="edit-actions">
+                    <button class="save-new-session-btn" data-date="${date}">Save</button>
+                    <button class="cancel-new-session-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+        
+        // Insert the form at the top of the sessions list
+        sessionsList.insertBefore(newSessionForm, sessionsList.firstChild);
+        
+        const startInput = newSessionForm.querySelector('.start-time-input');
+        const endInput = newSessionForm.querySelector('.end-time-input');
+        const durationInput = newSessionForm.querySelector('.duration-input');
+        const durationSpan = newSessionForm.querySelector('.calculated-duration');
+        
+        // Update calculated duration display when times change
+        const updateDuration = () => {
+            const startVal = startInput.value;
+            const endVal = endInput.value;
+            
+            if (startVal && endVal) {
+                const [startHour, startMin] = startVal.split(':').map(Number);
+                const [endHour, endMin] = endVal.split(':').map(Number);
+                
+                const startMinutes = startHour * 60 + startMin;
+                let endMinutes = endHour * 60 + endMin;
+                
+                // Handle overnight sessions
+                if (endMinutes <= startMinutes) {
+                    endMinutes += 24 * 60;
+                }
+                
+                const duration = endMinutes - startMinutes;
+                durationInput.value = duration;
+                const hours = Math.floor(duration / 60);
+                const mins = duration % 60;
+                
+                durationSpan.textContent = `${hours}h ${mins}m`;
+            }
+        };
+        
+        // Update end time when duration changes
+        const updateEndTimeFromDuration = () => {
+            const startVal = startInput.value;
+            const durationVal = parseInt(durationInput.value);
+            
+            if (startVal && durationVal && durationVal > 0) {
+                const [startHour, startMin] = startVal.split(':').map(Number);
+                const startMinutes = startHour * 60 + startMin;
+                const endMinutes = startMinutes + durationVal;
+                
+                if (endMinutes >= 24 * 60) {
+                    const nextDayMinutes = endMinutes - (24 * 60);
+                    const endHour = Math.floor(nextDayMinutes / 60);
+                    const endMin = nextDayMinutes % 60;
+                    
+                    const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+                    endInput.value = endTimeStr;
+                    
+                    durationSpan.textContent = `${Math.floor(durationVal / 60)}h ${durationVal % 60}m (ends next day)`;
+                } else {
+                    const endHour = Math.floor(endMinutes / 60);
+                    const endMin = endMinutes % 60;
+                    
+                    const endTimeStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+                    endInput.value = endTimeStr;
+                    
+                    durationSpan.textContent = `${Math.floor(durationVal / 60)}h ${durationVal % 60}m`;
+                }
+            }
+        };
+        
+        // Add event listeners
+        startInput.addEventListener('change', updateDuration);
+        endInput.addEventListener('change', updateDuration);
+        durationInput.addEventListener('input', updateEndTimeFromDuration);
+        
+        // Save button
+        const saveBtn = newSessionForm.querySelector('.save-new-session-btn');
+        saveBtn.addEventListener('click', () => {
+            this.saveNewSession(date, startInput.value, endInput.value, parseInt(durationInput.value));
+        });
+        
+        // Cancel button
+        const cancelBtn = newSessionForm.querySelector('.cancel-new-session-btn');
+        cancelBtn.addEventListener('click', () => {
+            newSessionForm.remove();
+        });
+    }
+    
+    saveNewSession(date, startTime, endTime, duration) {
+        if (!this.sessionHistory) {
+            this.sessionHistory = {};
+        }
+        
+        // Validate inputs
+        if (!startTime || !endTime || !duration || duration <= 0) {
+            alert('Please fill in all fields with valid values');
+            return;
+        }
+        
+        if (duration > 1440) {
+            alert('Duration cannot exceed 24 hours (1440 minutes)');
+            return;
+        }
+        
+        // Create session start and end timestamps
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        
+        const sessionDate = new Date(date);
+        const startDateTime = new Date(sessionDate);
+        startDateTime.setHours(startHour, startMin, 0, 0);
+        
+        const endDateTime = new Date(sessionDate);
+        endDateTime.setHours(endHour, endMin, 0, 0);
+        
+        // If end time is before start time, it means it goes to next day
+        if (endDateTime <= startDateTime) {
+            endDateTime.setDate(endDateTime.getDate() + 1);
+        }
+        
+        // Check for overlapping sessions
+        const existingSessions = this.sessionHistory[date] || [];
+        const hasOverlap = existingSessions.some(session => {
+            const existingStart = new Date(session.startTime);
+            const existingEnd = new Date(session.endTime);
+            
+            // Check if new session overlaps with existing session
+            return (startDateTime < existingEnd && endDateTime > existingStart);
+        });
+        
+        if (hasOverlap) {
+            if (!confirm('This session overlaps with an existing session. Do you want to add it anyway?')) {
+                return;
+            }
+        }
+        
+        // Create new session object
+        const newSession = {
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
+            duration: duration
+        };
+        
+        // Add session to history
+        if (!this.sessionHistory[date]) {
+            this.sessionHistory[date] = [];
+        }
+        this.sessionHistory[date].push(newSession);
+        
+        // Sort sessions by start time
+        this.sessionHistory[date].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        
+        // Update daily total
+        const currentDailyTotal = this.dailyStudyTimes[date] || 0;
+        this.dailyStudyTimes[date] = currentDailyTotal + duration;
+        
+        // Update total study minutes
+        this.totalStudyMinutes = (this.totalStudyMinutes || 0) + duration;
+        
+        // Save data
+        this.saveData();
+        
+        // Update UI
+        this.updateUI();
+        
+        // Show success message
+        this.showToast('Session added successfully');
+        
+        // Refresh the session details view
+        this.showSessionDetails(date);
+    }
+
     recalculateDailyTotal(date) {
         if (!this.sessionHistory) {
             this.sessionHistory = {};
+        }
+        
+        if (!this.dailyStudyTimes) {
+            this.dailyStudyTimes = {};
         }
         
         const sessions = this.sessionHistory[date] || [];
@@ -2609,6 +3062,10 @@ class StudyApp {
     getAllDatesInRange() {
         if (!this.sessionHistory) {
             this.sessionHistory = {};
+        }
+        
+        if (!this.dailyStudyTimes) {
+            this.dailyStudyTimes = {};
         }
         
         const dates = Object.keys(this.dailyStudyTimes);
