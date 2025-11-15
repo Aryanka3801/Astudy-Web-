@@ -140,6 +140,7 @@ class StudyApp {
         this.currentUser = null;
         this.isSignUpMode = false;
         this.dataLoaded = false;
+        this.justLoggedOut = false;
         
         // Quote system
         this.lastQuoteIndex = -1;
@@ -178,7 +179,13 @@ class StudyApp {
                         if (user) {
                             this.loadDataFromFirestore();
                         } else {
-                            this.loadDataFromLocalStorage();
+                            if (this.justLoggedOut) {
+                                this.initializeDefaultData();
+                                this.updateUI();
+                                this.justLoggedOut = false;
+                            } else {
+                                this.loadDataFromLocalStorage();
+                            }
                         }
                     });
                 } catch (error) {
@@ -219,11 +226,31 @@ class StudyApp {
             userInfoDrawer.style.display = 'flex';
             userEmailDrawer.textContent = this.currentUser.email;
             authPrompt.style.display = 'none';
+            
+            setTimeout(() => this.setupEmailScrolling(), 100);
         } else {
             signInBtnDrawer.style.display = 'block';
             logoutBtnDrawer.style.display = 'none';
             userInfoDrawer.style.display = 'none';
             authPrompt.style.display = 'block';
+        }
+    }
+    
+    setupEmailScrolling() {
+        const emailElement = document.getElementById('userEmailDrawer');
+        const containerElement = emailElement?.parentElement;
+        
+        if (!emailElement || !containerElement) return;
+        
+        const emailWidth = emailElement.scrollWidth;
+        const containerWidth = containerElement.clientWidth;
+        
+        if (emailWidth > containerWidth) {
+            const scrollDistance = containerWidth - emailWidth;
+            emailElement.style.setProperty('--scroll-distance', `${scrollDistance}px`);
+            emailElement.classList.add('scrolling');
+        } else {
+            emailElement.classList.remove('scrolling');
         }
     }
 
@@ -1595,13 +1622,52 @@ class StudyApp {
 
     async signOut() {
         try {
+            this.justLoggedOut = true;
+            this.clearUserData();
+            
             const { signOut } = window.firebaseAuthFunctions;
             await signOut(window.firebaseAuth);
+            
             this.showToast('Signed out successfully');
         } catch (error) {
             console.error('Sign out error:', error);
             this.showToast('Error signing out');
+            this.justLoggedOut = false;
         }
+    }
+    
+    clearUserData() {
+        localStorage.removeItem('completedChapters');
+        localStorage.removeItem('mcqCounts');
+        localStorage.removeItem('totalStudyMinutes');
+        localStorage.removeItem('dailyStudyTimes');
+        localStorage.removeItem('sessionHistory');
+        localStorage.removeItem('studySession');
+        localStorage.removeItem('lastUpdated');
+        
+        this.completedChapters = {
+            Physics: [],
+            Chemistry: [],
+            Maths: []
+        };
+        this.mcqCounts = {
+            Physics: 0,
+            Chemistry: 0,
+            Maths: 0
+        };
+        this.totalStudyMinutes = 0;
+        this.dailyStudyTimes = {};
+        this.sessionHistory = {};
+        this.studySession = {
+            originalStartTime: null,
+            startTime: null,
+            pausedTime: 0,
+            isActive: false,
+            isPaused: false
+        };
+        
+        this.updateUI();
+        console.log('User data cleared from localStorage and memory');
     }
 
     // Authentication UI Helpers

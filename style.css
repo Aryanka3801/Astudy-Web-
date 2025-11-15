@@ -2005,14 +2005,49 @@ html, body {
     margin-bottom: 8px;
 }
 
+#userInfoDrawer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+#userInfoDrawer span:first-child {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-email-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
 .user-email-text {
     font-weight: 600;
     color: var(--primary-color);
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 150px;
     display: inline-block;
+    font-size: 14px;
+    position: relative;
+}
+
+.user-email-text.scrolling {
+    animation: scrollEmail 8s ease-in-out infinite;
+}
+
+@keyframes scrollEmail {
+    0%, 20% {
+        transform: translateX(0);
+    }
+    50%, 70% {
+        transform: translateX(var(--scroll-distance, 0));
+    }
+    100% {
+        transform: translateX(0);
+    }
 }
 
 /* Modal */
