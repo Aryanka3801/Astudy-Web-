@@ -1481,9 +1481,219 @@ html, body {
 }
 
 .elapsed-time {
-    font-size: 24px;
-    font-weight: 600;
+    text-align: center;
+    margin: 12px 0;
+}
+
+.elapsed-time:not(:empty) {
+    font-size: clamp(32px, 8vw, 48px);
+    font-weight: 700;
     color: #3F51B5;
+    font-family: 'Courier New', monospace;
+    margin: 20px auto;
+    letter-spacing: clamp(2px, 0.5vw, 3px);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(63, 81, 181, 0.15);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    box-shadow: 0 2px 8px rgba(63, 81, 181, 0.1);
+    max-width: 100%;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fullscreen-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    color: white;
+}
+
+.fullscreen-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.fullscreen-btn:active {
+    transform: scale(0.95);
+}
+
+.fullscreen-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Fullscreen Timer View */
+.study-time-page.fullscreen-mode,
+.study-time-page:fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: #667eea !important;
+    background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    animation: fadeIn 0.5s ease !important;
+    overflow: hidden !important;
+}
+
+.study-time-page.fullscreen-mode::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.fullscreen-mode .elapsed-time:not(:empty),
+:fullscreen .elapsed-time:not(:empty) {
+    font-size: clamp(56px, 12vw, 96px) !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    font-family: 'Courier New', monospace !important;
+    letter-spacing: clamp(3px, 0.8vw, 8px) !important;
+    padding: 32px 56px !important;
+    margin: 0 auto !important;
+    border-radius: 20px !important;
+    border: 3px solid rgba(255, 255, 255, 0.4) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), inset 0 2px 10px rgba(255, 255, 255, 0.2) !important;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.3) !important;
+    animation: pulseGlow 3s ease-in-out infinite !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 
+                    inset 0 2px 10px rgba(255, 255, 255, 0.2),
+                    0 0 30px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        transform: scale(1.03);
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.5), 
+                    inset 0 2px 15px rgba(255, 255, 255, 0.3),
+                    0 0 50px rgba(255, 255, 255, 0.4);
+    }
+}
+
+.fullscreen-mode .timer-container,
+:fullscreen .timer-container {
+    flex-direction: column;
+    gap: 40px;
+}
+
+.fullscreen-mode .fullscreen-btn,
+:fullscreen .fullscreen-btn {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 60px;
+    height: 60px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.fullscreen-mode .fullscreen-btn:hover,
+:fullscreen .fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1) rotate(90deg);
+}
+
+.fullscreen-mode .fullscreen-btn svg,
+:fullscreen .fullscreen-btn svg {
+    width: 28px;
+    height: 28px;
+    stroke: white;
+}
+
+.fullscreen-mode .session-info,
+.fullscreen-mode .study-controls,
+.fullscreen-mode #todaySessionsCard,
+:fullscreen .session-info,
+:fullscreen .study-controls,
+:fullscreen #todaySessionsCard {
+    display: none;
+}
+
+.fullscreen-mode .page-content,
+:fullscreen .page-content {
+    background: transparent !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fullscreen-mode .card-content,
+:fullscreen .card-content {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.fullscreen-mode .card,
+:fullscreen .card {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .study-controls {

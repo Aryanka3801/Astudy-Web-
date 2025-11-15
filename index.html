@@ -290,7 +290,14 @@
                     <div class="card">
                         <div class="card-content">
                             <div class="session-info" id="sessionInfo">No active session</div>
-                            <div class="elapsed-time" id="elapsedTime"></div>
+                            <div class="timer-container">
+                                <div class="elapsed-time" id="elapsedTime"></div>
+                                <button class="fullscreen-btn" id="fullscreenBtn" title="Fullscreen Timer" style="display: none;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                                    </svg>
+                                </button>
+                            </div>
                             
                             <div class="study-controls">
                                 <button class="btn btn-primary" id="toggleSession">Start Study</button>

@@ -642,6 +642,17 @@ class StudyApp {
         this.dataLoaded = true;
         this.updateUI();
         this.loadAllChapters();
+        this.resumeStudySessionIfActive();
+    }
+    
+    // Resume study timer if session was active before page reload
+    resumeStudySessionIfActive() {
+        if (this.studySession && this.studySession.isActive) {
+            this.updateStudySessionUI();
+            if (!this.studySession.isPaused) {
+                this.startStudyTimer();
+            }
+        }
     }
     
     // Migrate existing localStorage data to Firestore for new users
@@ -726,6 +737,7 @@ class StudyApp {
         this.dataLoaded = true;
         this.updateUI();
         this.loadAllChapters();
+        this.resumeStudySessionIfActive();
     }
     
     // Helper method to load all chapters after data is ready
@@ -1688,6 +1700,9 @@ class StudyApp {
         // Study time controls
         this.setupStudyTimeControls();
         
+        // Fullscreen listener
+        this.setupFullscreenListener();
+        
         // Quote translate button
         const quoteTranslateBtn = document.getElementById('quoteTranslateBtn');
         if (quoteTranslateBtn) {
@@ -1777,6 +1792,7 @@ class StudyApp {
     setupStudyTimeControls() {
         const toggleBtn = document.getElementById('toggleSession');
         const pauseBtn = document.getElementById('togglePause');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
 
         toggleBtn.addEventListener('click', () => {
             if (this.studySession.isActive) {
@@ -1793,6 +1809,12 @@ class StudyApp {
                 this.pauseStudySession();
             }
         });
+        
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                this.toggleFullscreen();
+            });
+        }
     }
 
     // Swipe functionality setup
@@ -2293,6 +2315,7 @@ class StudyApp {
         const elapsedTime = document.getElementById('elapsedTime');
         const toggleBtn = document.getElementById('toggleSession');
         const pauseBtn = document.getElementById('togglePause');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
         
         if (this.studySession.isActive) {
             const startTime = new Date(this.studySession.startTime);
@@ -2305,17 +2328,73 @@ class StudyApp {
             
             const hours = Math.floor(totalElapsed / (1000 * 60 * 60));
             const minutes = Math.floor((totalElapsed % (1000 * 60 * 60)) / (1000 * 60));
-            elapsedTime.textContent = `Elapsed time: ${hours}h ${minutes}m`;
+            const seconds = Math.floor((totalElapsed % (1000 * 60)) / 1000);
+            elapsedTime.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
             toggleBtn.textContent = 'End Study Session';
             pauseBtn.style.display = 'block';
             pauseBtn.textContent = this.studySession.isPaused ? 'Resume' : 'Pause';
+            if (fullscreenBtn) fullscreenBtn.style.display = 'flex';
         } else {
             sessionInfo.textContent = 'No active session';
             elapsedTime.textContent = '';
             toggleBtn.textContent = 'Start Study';
             pauseBtn.style.display = 'none';
+            if (fullscreenBtn) fullscreenBtn.style.display = 'none';
+            
+            const studyTimePage = document.getElementById('study-time-page');
+            if (studyTimePage) studyTimePage.classList.remove('fullscreen-mode');
         }
+    }
+    
+    toggleFullscreen() {
+        const studyTimePage = document.getElementById('study-time-page');
+        
+        if (!document.fullscreenElement) {
+            studyTimePage.requestFullscreen().catch(err => {
+                console.log('Error attempting to enable fullscreen:', err);
+                studyTimePage.classList.add('fullscreen-mode');
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    
+    setupFullscreenListener() {
+        const studyTimePage = document.getElementById('study-time-page');
+        
+        // Listen for programmatic fullscreen (requestFullscreen API)
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement === studyTimePage) {
+                studyTimePage.classList.add('fullscreen-mode');
+            } else if (document.fullscreenElement === null && !this.isWindowFullscreen()) {
+                studyTimePage.classList.remove('fullscreen-mode');
+            }
+        });
+        
+        // Listen for browser fullscreen (F11) and window resize
+        const checkFullscreen = () => {
+            const currentTab = document.querySelector('.tab-button.active');
+            const isStudyTimeActive = currentTab && currentTab.dataset.tab === 'study-time';
+            
+            if (isStudyTimeActive && this.studySession.isActive) {
+                if (this.isWindowFullscreen()) {
+                    studyTimePage.classList.add('fullscreen-mode');
+                } else if (!document.fullscreenElement) {
+                    studyTimePage.classList.remove('fullscreen-mode');
+                }
+            }
+        };
+        
+        window.addEventListener('resize', checkFullscreen);
+        window.addEventListener('fullscreenchange', checkFullscreen);
+    }
+    
+    isWindowFullscreen() {
+        return (window.innerHeight === screen.height && 
+                window.innerWidth === screen.width) ||
+               (Math.abs(window.innerHeight - screen.height) <= 1 && 
+                Math.abs(window.innerWidth - screen.width) <= 1);
     }
 
     // History Management
