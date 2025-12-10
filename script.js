@@ -26,13 +26,15 @@ const CHAPTERS = {
             "Semiconductor Devices"
         ],
         '11th': [
+            "Vectors",
+            "Error Analysis",
             "Motion in a Plane",
             "Laws of Motion",
             "Gravitation",
             "Thermal Properties of Matter",
             "Sound",
             "Optics",
-            "Electrostatics(11th)",
+            "Electrostatics",
             "Semiconductors"
         ]
     },
@@ -64,7 +66,8 @@ const CHAPTERS = {
             "States of Matter (Gaseous and Liquid States)",
             "Adsorption and Colloids (Surface Chemistry)",
             "Hydrocarbons",
-            "Basic Principles of Organic Chemistry"
+            "Basic Principles of Organic Chemistry",
+            "Chemistry in Everyday Life"
         ]
     },
     Maths: {
@@ -89,20 +92,20 @@ const CHAPTERS = {
             "Trigonometry II",
             "Straight Line",
             "Circle",
-            "Measures of Dispersion",
             "Probability",
             "Complex Numbers",
             "Permutations and Combinations",
             "Functions",
             "Limits",
-            "Continuity"
+            "Continuity",
+            "Conic Section"
         ]
     }
 };
 
 const TOTAL_CHAPTERS = {
-    Physics: 24,
-    Chemistry: 25,
+    Physics: 26,
+    Chemistry: 26,
     Maths: 25
 };
 
